@@ -4,6 +4,8 @@ import customtkinter as ctk
 from lotes_view import LotesView  # Importación de la vista que creamos
 from chacras_view import ChacrasView
 from loteagrario_view import LoteAgrarioView
+from vehiculos_view import VehiculosView
+from combustibles_view import CombustiblesView
 from PIL import Image
 import os
 
@@ -223,7 +225,14 @@ class MainView:
         elif nombre_modulo == "Parcelas":
             # NUEVO: Ruteo dinámico para levantar el ABM de LoteAgrario
             self.vista_lote_agrario = LoteAgrarioView(self.content_frame, self.db)
-            
+        elif nombre_modulo == "Vehiculos":
+            # NUEVO: Ruteo seguro para inyectar el ABM de Vehículos con ID de usuario dinámico
+            user_id = getattr(self.root, "current_user_id", 1) # Captura el ID desde app.py si existe, sino usa 1
+            self.vista_vehiculos = VehiculosView(self.content_frame, self.db, current_user_id=user_id)    
+        elif nombre_modulo == "Combustibles":
+            # NUEVO: Ruteo dinámico para levantar la gestión de Combustibles y Precios
+            user_id = getattr(self.root, "current_user_id", 1)
+            self.vista_combustibles = CombustiblesView(self.content_frame, self.db, current_user_id=user_id)
         else:
             # Mensaje temporal para los módulos que aún no creamos
             self.welcome_label = ctk.CTkLabel(
