@@ -4,7 +4,7 @@ import configparser
 import os
 
 class LoginView(ctk.CTkFrame):
-    def __init__(self, master, on_login_success):
+    def __init__(self, master, on_login_success, last_user=""):
         super().__init__(master)
         # Centramos un poco más el contenedor en la pantalla gigante
         self.pack(pady=150, padx=60, fill="none", expand=True)
@@ -13,10 +13,10 @@ class LoginView(ctk.CTkFrame):
         self.label = ctk.CTkLabel(self, text="Iniciar Sesión", font=("Arial", 28, "bold"))
         self.label.pack(pady=(30, 20), padx=40)
 
-        # Intentamos leer el último usuario guardado
-        ultimo_usuario = self._obtener_ultimo_usuario()
+        # Usamos el usuario que nos pasa app.py, o el de respaldo del config local
+        ultimo_usuario = last_user if last_user else self._obtener_ultimo_usuario()
 
-        # Input de Usuario - Letra tamaño 16 y caja más ancha y alta
+        # Input de Usuario
         self.user_entry = ctk.CTkEntry(
             self, 
             placeholder_text="Usuario", 
@@ -29,7 +29,7 @@ class LoginView(ctk.CTkFrame):
         if ultimo_usuario:
             self.user_entry.insert(0, ultimo_usuario)
 
-        # Input de Contraseña - Letra tamaño 16 y caja más ancha y alta
+        # Input de Contraseña
         self.password_entry = ctk.CTkEntry(
             self, 
             placeholder_text="Contraseña", 
@@ -43,7 +43,7 @@ class LoginView(ctk.CTkFrame):
         # Vincular la tecla "Enter" al cuadro de contraseña
         self.password_entry.bind("<Return>", lambda event: self._login())
 
-        # Botón de Login - Texto cambiado a "ACCEDER", más grande y llamativo
+        # Botón de Login
         self.login_button = ctk.CTkButton(
             self, 
             text="ACCEDER", 
@@ -60,7 +60,17 @@ class LoginView(ctk.CTkFrame):
         else:
             self.user_entry.focus()
 
-        self.on_login_success = on_login_success
+        # Guardamos el callback que viene de app.py
+        self.on_login_success_callback = on_login_success
+
+    def _login(self):
+        """Extrae los datos ingresados y ejecuta la validación de app.py"""
+        username = self.user_entry.get().strip()
+        password = self.password_entry.get()
+        
+        if username and password:
+            # Ejecuta la función on_login_success pasándole los datos
+            self.on_login_success_callback(username, password)
 
     def _obtener_ultimo_usuario(self):
         """Lee el config.ini y devuelve el usuario si existe"""
@@ -72,10 +82,5 @@ class LoginView(ctk.CTkFrame):
                     usuario_raw = config.get('Parametros', 'LU')
                     return usuario_raw.replace('"', '')
             except Exception as e:
-                print(f"Error al leer config.ini: {e}")
+                print(f"Error al leer último usuario en login_view: {e}")
         return ""
-
-    def _login(self):
-        username = self.user_entry.get()
-        password = self.password_entry.get()
-        self.on_login_success(username, password)

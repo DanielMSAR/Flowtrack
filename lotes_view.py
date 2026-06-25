@@ -32,25 +32,25 @@ class LotesView(ctk.CTkFrame):
         self.tree.heading("id", text="ID")
         self.tree.heading("fechainicio", text="Fecha Inicio")
         self.tree.heading("lote", text="Nº Lote")
-        self.tree.heading("kgsingreso", text="Kgs Ingreso")
-        self.tree.heading("procedencia", text="Origen Agrario (Chacra)")
+        self.tree.heading("kgsingreso", text="Kgs Verde")
+        self.tree.heading("procedencia", text="Origen (Chacra)")
         self.tree.heading("procesado", text="¿Proc?")
-        self.tree.heading("tiempo_proc", text="Tiempo a Proc.")
+        self.tree.heading("tiempo_proc", text="Tiempo Proc.")
         self.tree.heading("kgsprocesado", text="Kgs Proc.")
         self.tree.heading("envasado", text="¿Env?")
-        self.tree.heading("tiempo_env", text="Tiempo a Env.")
+        self.tree.heading("tiempo_env", text="Tiempo Env.")
         self.tree.heading("kgsenv", text="Kgs Env.")
 
         # Ajuste proporcional de anchos de columna para que entre todo cómodo en pantalla
-        self.tree.column("id", width=40, anchor="center")
+        self.tree.column("id", width=30, anchor="center")
         self.tree.column("fechainicio", width=130, anchor="center")
         self.tree.column("lote", width=90, anchor="center")
         self.tree.column("kgsingreso", width=90, anchor="e")
         self.tree.column("procedencia", width=180, anchor="w")
-        self.tree.column("procesado", width=55, anchor="center")
+        self.tree.column("procesado", width=60, anchor="center")
         self.tree.column("tiempo_proc", width=110, anchor="center")
         self.tree.column("kgsprocesado", width=90, anchor="e")
-        self.tree.column("envasado", width=55, anchor="center")
+        self.tree.column("envasado", width=60, anchor="center")
         self.tree.column("tiempo_env", width=110, anchor="center")
         self.tree.column("kgsenv", width=90, anchor="e")
 
@@ -313,7 +313,7 @@ class LotesView(ctk.CTkFrame):
                 if fila[7] == 1:
                     t_hasta_envasado = self._formatear_delta_tiempo(f_proc, f_env)
                 
-                fecha_str = f_inicio.strftime('%d-%m-%Y %H:%M:%S') if isinstance(f_inicio, datetime) else str(f_inicio)
+                fecha_str = f_inicio.strftime('%d-%m-%Y %H:%M') if isinstance(f_inicio, datetime) else str(f_inicio)
                 
                 self.tree.insert("", "end", values=(
                     id_lote, fecha_str, lote_cod, kgs_in, procedencia, 

@@ -22,17 +22,22 @@ class MainView:
         self.status_bar = ctk.CTkFrame(self.main_container, height=45, fg_color="#4d5433", corner_radius=0)
         self.status_bar.pack(side="bottom", fill="x")
         
+        # Solo calculamos el saludo con la hora del sistema
+        from datetime import datetime
+        nombre_usuario = getattr(self.root, "current_user_name", "DANIEL").upper()
+        texto_saludo = f"DG SOLUCIONES - BUENOS DIAS {nombre_usuario}" if datetime.now().hour < 12 else f"DG SOLUCIONES - BUENAS TARDES {nombre_usuario}"
+        
         # Texto de la barra inferior
         self.status_label = ctk.CTkLabel(
             self.status_bar, 
-            text="DG SOLUCIONES - BUENOS DIAS DANIEL", 
+            text=texto_saludo, 
             text_color="white", 
             font=("Arial", 14, "bold")
         )
-        self.status_label.pack(pady=8)
+        self.status_label.pack(side="left", padx=20, pady=10)
 
         # 2. PANEL LATERAL (MENU) - ¡Ajustado a 280 de ancho!
-        self.sidebar_frame = ctk.CTkFrame(self.main_container, width=280, fg_color="#d6e4f0", corner_radius=0)
+        self.sidebar_frame = ctk.CTkFrame(self.main_container, width=230, fg_color="#d6e4f0", corner_radius=0)
         self.sidebar_frame.pack(side="left", fill="y")
         self.sidebar_frame.pack_propagate(False)
 
