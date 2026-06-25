@@ -3,9 +3,37 @@ import bcrypt
 import customtkinter as ctk
 import configparser
 import os
+import sys
 from database import Database
 from login_view import LoginView
 from main_view import MainView
+
+# =====================================================================
+# SECCIÓN: CONTROL DE INSTANCIA ÚNICA (MUTEX NATIVO PARA WINDOWS)
+# =====================================================================
+if os.name == 'nt':  # Solo se ejecuta si estamos en Windows
+    import ctypes
+    from ctypes import wintypes
+
+    # Creamos un identificador único global para FlowTrack
+    MUTEX_NAME = "Global\\DG_Soluciones_FlowTrack_Application_Mutex"
+    
+    # Intentamos crear el Mutex en el sistema operativo
+    Kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+    CreateMutex = Kernel32.CreateMutexW
+    CreateMutex.argtypes = [ctypes.c_void_p, wintypes.BOOL, wintypes.LPCWSTR]
+    CreateMutex.restype = wintypes.HANDLE
+
+    # Ejecutamos la creación del candado
+    mutex_handle = CreateMutex(None, True, MUTEX_NAME)
+    last_error = ctypes.get_last_error()
+
+    # Si el error es 183 (ERROR_ALREADY_EXISTS), significa que ya hay una ventana ejecutándose
+    if last_error == 183:
+        print("FlowTrack ya se está ejecutando. Cerrando esta nueva instancia.")
+        sys.exit(0)  # Se cierra de inmediato sin levantar ninguna pantalla
+# =====================================================================
+
 
 class FlowTrackApp:
     def __init__(self):
@@ -78,6 +106,7 @@ class FlowTrackApp:
             # Verificamos la contraseña (Cambiá por texto plano si tus contraseñas aún no usan hash)
             if bcrypt.checkpw(password.encode('utf-8'), password_hasheada_db.encode('utf-8')):
                 self.current_user_id = user_id
+                self.root.current_user_name = username
                 print(f"Login exitoso para el usuario ID: {self.current_user_id}")
                 
                 self.guardar_ultimo_usuario(username)
