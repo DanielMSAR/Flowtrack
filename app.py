@@ -14,8 +14,8 @@ from main_view import MainView
 # CONFIGURACIÓN DE ACTUALIZACIÓN AUTOMÁTICA (GITHUB PÚBLICO)
 # =====================================================================
 VERSION_LOCAL = "1.0.0"  # <-- Cambiá esto a mano en tu código cada vez que lances una versión
-USER_GIT = "tu_usuario_de_github"      # <-- Colocá tu usuario real de GitHub
-REPO_GIT = "tu_repositorio_flowtrack"  # <-- Colocá el nombre exacto de tu repo
+USER_GIT = "DanielMSAR"      # <-- Colocá tu usuario real de GitHub
+REPO_GIT = "Flowtrack"  # <-- Colocá el nombre exacto de tu repo
 
 # Lista exacta de los archivos .py de tu sistema que querés que se actualicen
 ARCHIVOS_SISTEMA = [
