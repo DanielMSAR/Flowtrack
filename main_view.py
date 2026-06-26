@@ -7,6 +7,7 @@ from loteagrario_view import LoteAgrarioView
 from vehiculos_view import VehiculosView
 from combustibles_view import CombustiblesView
 from insumos_view import InsumosView
+from movinsumos_view import MovInsumosView
 from PIL import Image
 import os
 
@@ -95,7 +96,7 @@ class MainView:
             {"texto": "Lotes", "icono": "lote.png"},
             {"texto": "Sistema Balanza", "icono": "balanza.png"},
             {"texto": "Mov. Combustibles", "icono": "combustible.png"},
-            {"texto": "Insumos", "icono": "insumo.png"}
+            {"texto": "Mov. Insumos", "icono": "insumo.png"}
         ]
         
         for opc in opciones_mov:
@@ -240,7 +241,9 @@ class MainView:
             user_id = getattr(self.root, "current_user_id", 1)
             self.vista_combustibles = CombustiblesView(self.content_frame, self.db, current_user_id=user_id)
         elif nombre_modulo == "Insumos":
-            self.vista_insumos = InsumosView(self.content_frame, self.db)    
+            self.vista_insumos = InsumosView(self.content_frame, self.db)  
+        elif nombre_modulo == "Mov. Insumos":
+            self.vista_mov_insumos = MovInsumosView(self.content_frame, self.db)
         elif nombre_modulo == "Mov. Combustibles":
             # NUEVO: Cuando hagamos la vista de cargas, apuntará aquí sin pisar el ABM
             # Por ahora, como todavía no lo creamos, caerá de forma segura en el cartel "En desarrollo..."

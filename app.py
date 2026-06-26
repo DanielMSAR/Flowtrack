@@ -4,50 +4,96 @@ import customtkinter as ctk
 import configparser
 import os
 import sys
+import urllib.request
+import json
 from database import Database
 from login_view import LoginView
 from main_view import MainView
 
 # =====================================================================
-# SECCIÓN: CONTROL DE INSTANCIA ÚNICA (MUTEX NATIVO PARA WINDOWS)
+# CONFIGURACIÓN DE ACTUALIZACIÓN AUTOMÁTICA (GITHUB PÚBLICO)
 # =====================================================================
-if os.name == 'nt':  # Solo se ejecuta si estamos en Windows
-    import ctypes
-    from ctypes import wintypes
+VERSION_LOCAL = "1.0.0"  # <-- Cambiá esto a mano en tu código cada vez que lances una versión
+USER_GIT = "tu_usuario_de_github"      # <-- Colocá tu usuario real de GitHub
+REPO_GIT = "tu_repositorio_flowtrack"  # <-- Colocá el nombre exacto de tu repo
 
-    # Creamos un identificador único global para FlowTrack
-    MUTEX_NAME = "Global\\DG_Soluciones_FlowTrack_Application_Mutex"
+# Lista exacta de los archivos .py de tu sistema que querés que se actualicen
+ARCHIVOS_SISTEMA = [
+    "app.py",
+    "main_view.py",
+    "login_view.py",
+    "database.py",
+    "insumos_view.py",
+    "movinsumos_view.py",
+    "lotes_view.py",
+    "chacras_view.py",
+    "loteagrario_view.py",
+    "vehiculos_view.py",
+    "combustibles_view.py"
+]
+
+def verificar_actualizaciones_al_inicio():
+    """Consulta GitHub y actualiza los archivos .py si hay una versión nueva"""
+    # Buscamos el contenido del archivo version.txt en la rama main de tu GitHub
+    url_version_git = f"https://raw.githubusercontent.com/{USER_GIT}/{REPO_GIT}/main/version.txt"
     
-    # Intentamos crear el Mutex en el sistema operativo
-    Kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
-    CreateMutex = Kernel32.CreateMutexW
-    CreateMutex.argtypes = [ctypes.c_void_p, wintypes.BOOL, wintypes.LPCWSTR]
-    CreateMutex.restype = wintypes.HANDLE
+    try:
+        # Petición rápida para leer el texto de la versión remota
+        req = urllib.request.Request(url_version_git, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=5) as response:
+            version_remota = response.read().decode('utf-8').strip()
+        
+        # Si la versión en Git es distinta a la local, ofrecemos actualizar
+        if version_remota != VERSION_LOCAL:
+            from tkinter import messagebox
+            root_temporal = ctk.CTk()
+            root_temporal.withdraw() # Ocultamos una ventana vacía de Tkinter para el mensaje
+            
+            confirmar = messagebox.askyesno(
+                "Actualización de FlowTrack", 
+                f"Se detectó una nueva actualización disponible (Versión {version_remota}).\n"
+                f"Tu versión actual es la {VERSION_LOCAL}.\n\n"
+                "¿Deseas descargar e instalar las mejoras ahora mismo?"
+            )
+            
+            if confirmar:
+                print("Iniciando descarga de actualizaciones...")
+                # Recorremos y descargamos únicamente los archivos de código fuente
+                for archivo in ARCHIVOS_SISTEMA:
+                    url_archivo_git = f"https://raw.githubusercontent.com/{USER_GIT}/{REPO_GIT}/main/{archivo}"
+                    try:
+                        urllib.request.urlretrieve(url_archivo_git, archivo)
+                        print(f"-> {archivo} actualizado con éxito.")
+                    except Exception as e_archivo:
+                        print(f"Error al descargar {archivo}: {e_archivo}")
+                
+                messagebox.showinfo("Éxito", "El sistema se actualizó correctamente. Se reiniciará la aplicación.")
+                root_temporal.destroy()
+                
+                # Reiniciamos el script en caliente con los nuevos archivos .py cargados
+                os.execv(sys.executable, ['python'] + sys.argv)
+            else:
+                root_temporal.destroy() # Si dice que no, destruimos el root temporal y sigue el inicio normal
+                
+    except Exception as e:
+        # Si el cliente no tiene internet o falla Git, imprime el error en consola y arranca igual
+        print(f"No se pudo verificar actualizaciones (saltando paso): {e}")
 
-    # Ejecutamos la creación del candado
-    mutex_handle = CreateMutex(None, True, MUTEX_NAME)
-    last_error = ctypes.get_last_error()
-
-    # Si el error es 183 (ERROR_ALREADY_EXISTS), significa que ya hay una ventana ejecutándose
-    if last_error == 183:
-        print("FlowTrack ya se está ejecutando. Cerrando esta nueva instancia.")
-        sys.exit(0)  # Se cierra de inmediato sin levantar ninguna pantalla
+# Ejecutamos el control de actualización antes de levantar cualquier interfaz
+verificar_actualizaciones_al_inicio()
 # =====================================================================
 
 
 class FlowTrackApp:
     def __init__(self):
-        # Configuración general de CustomTkinter
-        ctk.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
-        ctk.set_default_color_theme("green")  # Themes: "blue" (standard), "green", "dark-blue"
+        ctk.set_appearance_mode("System")  
+        ctk.set_default_color_theme("green")  
 
         self.root = ctk.CTk()
         self.root.title("FlowTrack")
         
-        # 1. ESTABLECER ICONO PERSONALIZADO NATIVO (.ICO)
         self._set_app_icon()
         
-        # 2. MAXIMIZADO SEGURO
         self.root.update_idletasks()
         self.root.after(0, lambda: self.root.wm_state('zoomed'))
 
@@ -59,18 +105,12 @@ class FlowTrackApp:
         self.show_login()
 
     def _set_app_icon(self):
-        """Aplica el archivo .ico de forma nativa para obligar a Windows a cambiar el icono de la barra"""
         ruta_ico = os.path.join(os.path.dirname(__file__), "icono_app.ico")
-        
         if os.path.exists(ruta_ico):
             try:
-                # El método iconbitmap es el estándar directo y más compatible con Windows para archivos .ico
                 self.root.iconbitmap(ruta_ico)
-                print("Icono nativo .ico cargado con éxito.")
             except Exception as e:
                 print(f"Error al aplicar iconbitmap: {e}")
-        else:
-            print("No se encontró el archivo 'icono_app.ico' en la raíz del proyecto.")
 
     def show_login(self):
         if self.login_view:
@@ -78,23 +118,17 @@ class FlowTrackApp:
         self.login_view = LoginView(self.root, self.on_login_success)
 
     def guardar_ultimo_usuario(self, username):
-        """Guarda el nombre del último usuario logueado en config.ini"""
         config = configparser.ConfigParser()
-        
         if os.path.exists('config.ini'):
             config.read('config.ini', encoding='utf-8')
-        
         if not config.has_section('Parametros'):
             config.add_section('Parametros')
             
         config.set('Parametros', 'LU', f'"{username}"')
-        
         with open('config.ini', 'w', encoding='utf-8') as configfile:
             config.write(configfile)
-        print("Usuario guardado en config.ini")
 
     def on_login_success(self, username, password):
-        # Tu tabla real 'users' y campo de ID 'id'
         query = "SELECT id, password FROM users WHERE usuario = %s"
         params = (username,)
         result = self.db.execute_query(query, params)
@@ -103,11 +137,12 @@ class FlowTrackApp:
             user_id = result[0][0]
             password_hasheada_db = result[0][1]
 
-            # Verificamos la contraseña (Cambiá por texto plano si tus contraseñas aún no usan hash)
             if bcrypt.checkpw(password.encode('utf-8'), password_hasheada_db.encode('utf-8')):
                 self.current_user_id = user_id
+                
+                # Seteamos los datos en el root antes de instanciar MainView
+                self.root.current_user_id = user_id
                 self.root.current_user_name = username
-                print(f"Login exitoso para el usuario ID: {self.current_user_id}")
                 
                 self.guardar_ultimo_usuario(username)
                 self.show_main_window()
@@ -122,9 +157,7 @@ class FlowTrackApp:
             self.login_view.destroy()
             self.login_view = None
         
-        # AJUSTE: Le pasamos la conexión self.db a la vista principal
         self.main_view = MainView(self.root, self.db)
-        print("Ventana Principal Cargada.")
 
     def run(self):
         self.root.mainloop()
