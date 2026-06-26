@@ -90,7 +90,7 @@ class FlowTrackApp:
         ctk.set_default_color_theme("green")  
 
         self.root = ctk.CTk()
-        self.root.title("FlowTrack")
+        self.root.title(f"FlowTrack - Versión {VERSION_LOCAL}")
         
         self._set_app_icon()
         
