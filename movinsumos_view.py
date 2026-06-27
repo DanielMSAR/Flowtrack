@@ -43,10 +43,22 @@ class MovInsumosView(ctk.CTkFrame):
         style.theme_use("clam")
         style.configure("Treeview", background="white", foreground="black", rowheight=30, fieldbackground="white", font=("Arial", 11))
         style.configure("Treeview.Heading", background="#f1f3f5", foreground="black", font=("Arial", 11, "bold"), borderwidth=1)
-        style.map("Treeview", background=[("selected", "#8cb04e")], foreground=[("selected", "black")])
+        
+        # =====================================================================
+        # SOLUCIÓN CORREGIDA PARA PYTHON 3.12:
+        # Extraemos el mapa actual y filtramos para que NO pise el color de los tags
+        # =====================================================================
+        style.map("Treeview", 
+            background=[("selected", "#8cb04e")], 
+            foreground=[("selected", "black")]
+        )
+        # =====================================================================
 
         columnas = ("idarticulo", "insumo", "cantidad", "puntocritico")
         self.tree_stock = ttk.Treeview(self.stock_container, columns=columnas, show="headings")
+        
+        # Registramos el tag "critico" con sus colores correspondientes
+        self.tree_stock.tag_configure("critico", background="#f8d7da", foreground="#721c24")
         
         self.tree_stock.heading("idarticulo", text="ID ARTÍCULO")
         self.tree_stock.heading("insumo", text="INSUMO / DESCRIPCIÓN")
@@ -74,27 +86,46 @@ class MovInsumosView(ctk.CTkFrame):
         self.cargar_grid_stock()
 
     def cargar_grid_stock(self):
-        """Ejecuta la consulta INNER JOIN solicitada"""
+        """Ejecuta la consulta con LEFT JOIN y limpia la transacción para actualizar datos externos"""
+        # 1. Limpiamos la grilla visual
         for fila in self.tree_stock.get_children():
             self.tree_stock.delete(fila)
 
+        # 2. TRUCO CRÍTICO: Forzamos el fin de la transacción anterior para limpiar la caché de Python
+        try:
+            if hasattr(self.db, "connection") and self.db.connection:
+                self.db.connection.commit()
+            elif hasattr(self.db, "conn") and self.db.conn:
+                self.db.conn.commit()
+        except Exception:
+            pass
+
+        # 3. Consulta reparada con LEFT JOIN e IFNULL
         query = """
             SELECT 
-                stockinsumos.idarticulo, 
+                insumos.id, 
                 insumos.insumo, 
-                stockinsumos.cantidad, 
+                IFNULL(stockinsumos.cantidad, 0.0) AS cantidad, 
                 insumos.puntocritico 
-            FROM stockinsumos 
-            INNER JOIN insumos ON stockinsumos.idarticulo = insumos.id
+            FROM insumos 
+            LEFT JOIN stockinsumos ON insumos.id = stockinsumos.idarticulo
             ORDER BY insumos.insumo ASC
         """
         registros = self.db.execute_query(query)
         if registros:
             for r in registros:
-                qty_fmt = f"{r[2]:.2f}" if r[2] is not None else "0.00"
-                pc_fmt = f"{r[3]:.2f}" if r[3] is not None else "0.00"
-                self.tree_stock.insert("", "end", values=(r[0], r[1], qty_fmt, pc_fmt))
+                # Obtenemos los valores flotantes puros para poder compararlos matemáticamente
+                cantidad_actual = r[2]
+                punto_critico = r[3] if r[3] is not None else 0.0
 
+                qty_fmt = f"{cantidad_actual:.2f}"
+                pc_fmt = f"{punto_critico:.2f}"
+                
+                # EVALUACIÓN: Si el stock actual está en el límite o por debajo, pintamos de rojo
+                if cantidad_actual <= punto_critico:
+                    self.tree_stock.insert("", "end", values=(r[0], r[1], qty_fmt, pc_fmt), tags=("critico",))
+                else:
+                    self.tree_stock.insert("", "end", values=(r[0], r[1], qty_fmt, pc_fmt))
     # =====================================================================
     # PESTAÑA: INGRESOS
     # =====================================================================
@@ -109,7 +140,7 @@ class MovInsumosView(ctk.CTkFrame):
         ctk.CTkLabel(self.ingresos_container, text="Seleccione Insumo:", font=("Arial", 12, "bold"), text_color="black").grid(row=1, column=0, padx=30, pady=(10, 2), sticky="w")
         self.cmb_insumos = ctk.CTkComboBox(self.ingresos_container, width=320, height=35, values=[], command=self._actualizar_lbl_stock_inicial)
         self.cmb_insumos.grid(row=2, column=0, padx=30, pady=(0, 15), sticky="w")
-
+        self.cmb_insumos.set("Seleccione un insumo...")
         # Indicador de Stock Inicial dinámico
         self.lbl_stock_previo = ctk.CTkLabel(self.ingresos_container, text="Stock Actual en Depósito: --", font=("Arial", 12, "italic"), text_color="blue")
         self.lbl_stock_previo.grid(row=2, column=1, padx=10, pady=(0, 15), sticky="w")
@@ -118,7 +149,7 @@ class MovInsumosView(ctk.CTkFrame):
         ctk.CTkLabel(self.ingresos_container, text="Vehículo Asociado:", font=("Arial", 12, "bold"), text_color="black").grid(row=3, column=0, padx=30, pady=(5, 2), sticky="w")
         self.cmb_vehiculos = ctk.CTkComboBox(self.ingresos_container, width=320, height=35, values=[])
         self.cmb_vehiculos.grid(row=4, column=0, padx=30, pady=(0, 15), sticky="w")
-
+        self.cmb_vehiculos.set("Seleccione un Vehiculo...")
         # Cantidad a Ingresar
         ctk.CTkLabel(self.ingresos_container, text="Cantidad a Agregar:", font=("Arial", 12, "bold"), text_color="black").grid(row=5, column=0, padx=30, pady=(5, 2), sticky="w")
         self.ent_cantidad = ctk.CTkEntry(self.ingresos_container, width=320, height=35, font=("Arial", 13))
@@ -169,6 +200,10 @@ class MovInsumosView(ctk.CTkFrame):
         cantidad_raw = self.ent_cantidad.get().strip()
         comprobante = self.ent_comp.get().strip()
 
+        # VALIDACIÓN MEJORADA: Evita que procese el texto por defecto
+        if not insumo_sel or insumo_sel == "Seleccione un insumo...":
+            messagebox.showwarning("Atención", "Debe seleccionar un insumo válido de la lista.")
+            return
         if not insumo_sel:
             messagebox.showwarning("Atención", "Debe seleccionar un insumo.")
             return
@@ -219,9 +254,11 @@ class MovInsumosView(ctk.CTkFrame):
 
             messagebox.showinfo("Éxito", f"Ingreso procesado correctamente.\nStock final: {stock_final:.2f}")
             
-            # Limpiar entradas y actualizar grillas
+            # Limpiar entradas y restaurar placeholders en combos
             self.ent_cantidad.delete(0, "end")
             self.ent_comp.delete(0, "end")
+            self.cmb_insumos.set("Seleccione un insumo...")
+            self.cmb_vehiculos.set("Seleccione un vehículo (Opcional)...")
             self.lbl_stock_previo.configure(text="Stock Actual en Depósito: --")
             self.cargar_grid_stock()
             

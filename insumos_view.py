@@ -182,10 +182,26 @@ class InsumosView(ctk.CTkFrame):
 
         try:
             self.db.execute_query(query, params)
+            
+            # =====================================================================
+            # CONFIRMACIÓN (COMMIT) EN MARIADB
+            # =====================================================================
+            if hasattr(self.db, "connection") and self.db.connection:
+                self.db.connection.commit()
+            elif hasattr(self.db, "conn") and self.db.conn:
+                self.db.conn.commit()
+            # =====================================================================
+
             messagebox.showinfo("Éxito", mensaje_exito)
             self.limpiar_formulario()
             self.cargar_datos()
         except Exception as e:
+            # Revertimos en caso de falla extrema
+            if hasattr(self.db, "connection") and self.db.connection:
+                self.db.connection.rollback()
+            elif hasattr(self.db, "conn") and self.db.conn:
+                self.db.conn.rollback()
+                
             messagebox.showerror("Error de Base de Datos", f"No se pudo guardar el registro:\n{e}")
 
     def eliminar_datos(self):
@@ -199,10 +215,25 @@ class InsumosView(ctk.CTkFrame):
             query = "DELETE FROM insumos WHERE id = %s"
             try:
                 self.db.execute_query(query, (self.selected_id,))
+                
+                # =====================================================================
+                # CONFIRMACIÓN (COMMIT) PARA LA BAJA
+                # =====================================================================
+                if hasattr(self.db, "connection") and self.db.connection:
+                    self.db.connection.commit()
+                elif hasattr(self.db, "conn") and self.db.conn:
+                    self.db.conn.commit()
+                # =====================================================================
+
                 messagebox.showinfo("Eliminado", "El insumo fue removido correctamente.")
                 self.limpiar_formulario()
                 self.cargar_datos()
             except Exception as e:
+                if hasattr(self.db, "connection") and self.db.connection:
+                    self.db.connection.rollback()
+                elif hasattr(self.db, "conn") and self.db.conn:
+                    self.db.conn.rollback()
+                    
                 messagebox.showerror("Error", f"No se pudo eliminar el registro:\n{e}")
 
     def limpiar_formulario(self):
