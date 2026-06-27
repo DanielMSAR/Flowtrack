@@ -10,6 +10,7 @@ from insumos_view import InsumosView
 from movinsumos_view import MovInsumosView
 from PIL import Image
 import os
+import webbrowser
 
 class MainView:
     def __init__(self, root, db_connection=None):  # Agregamos db_connection para pasarle el control a los módulos
@@ -266,3 +267,7 @@ class MainView:
                 font=("Arial", 24)
             )
             self.welcome_label.pack(pady=100)
+    def abrir_ayuda():
+        # Abre el index.html en el navegador predeterminado de la máquina
+        url = "file://" + os.path.realpath("manual/index.html")
+        webbrowser.open(url)

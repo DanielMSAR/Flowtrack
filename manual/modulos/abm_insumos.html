@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestión de Insumos - Manual FlowTrack</title>
+    <link rel="stylesheet" href="../estile.css">
+</head>
+<body>
+    <header>
+        <h1>Módulo: Gestión de Insumos</h1>
+        <p>Administración del catálogo maestro de la planta</p>
+    </header>
+
+    <div class="container">
+        <a href="../index.html" class="btn-volver">← Volver al Índice</a>
+
+        <h2>1. Descripción General</h2>
+        <p>Esta pantalla permite registrar todos los materiales, herramientas o insumos que se consumen en el predio industrial. Es la base para el control posterior del stock.</p>
+
+        <h2>2. Procedimiento de Carga (Alta)</h2>
+        <ol>
+            <li>Ingrese la <strong>Descripción del Insumo</strong> en mayúsculas (Ej: <em>GUANTES DE CUERO</em>).</li>
+            <li>Defina el <strong>Precio ($)</strong> unitario puro (sin signos monetarios).</li>
+            <li>Establezca el <strong>Punto Crítico</strong>. Este valor determinará cuándo el sistema emitirá una alerta visual por escasez.</li>
+            <li>Presione el botón <strong>"GUARDAR INSUMO"</strong>. El registro se grabará de forma permanente y aparecerá en la grilla derecha.</li>
+        </ol>
+
+        <h2>3. Modificación y Edición</h2>
+        <p>Para corregir los datos de un insumo existente, haga un solo clic sobre la fila correspondiente en la tabla. El formulario del panel izquierdo se rellenará automáticamente y el botón cambiará a modo <strong>"ACTUALIZAR INSUMO"</strong>.</p>
+
+        <div class="alerta-critica">
+            <strong>⚠️ NOTA IMPORTANTE SOBRE SEGURIDAD:</strong><br>
+            Las bajas son definitivas. Al eliminar un insumo, el sistema solicitará una confirmación doble para prevenir pérdidas accidentales en el catálogo.
+        </div>
+    </div>
+</body>
+</html>
