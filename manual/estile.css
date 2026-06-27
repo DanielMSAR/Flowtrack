@@ -59,3 +59,15 @@ img {
     border-radius: 4px;
     margin: 15px 0;
 }
+/* Nueva regla para limpiar los estilos en línea del índice */
+.enlace-modulo {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #4d5433;
+    text-decoration: none; /* Le quita el subrayado por defecto si preferís */
+}
+
+.enlace-modulo:hover {
+    color: #3b4026; /* Oscurece un poco el verde cuando se pasa el mouse por arriba */
+    text-decoration: underline; /* Se subraya solo al pasar el mouse */
+}
