@@ -175,6 +175,20 @@ class MainView:
             anchor="w", font=("Arial", 16), height=42, command=self.root.quit
         )
         btn_salir.pack(fill="x", pady=3)
+        # =====================================================================
+        # NUEVO: Botón de Ayuda / Manual de Usuario fijo al fondo del menú lateral
+        # =====================================================================
+        self.btn_ayuda = ctk.CTkButton(
+            self.sidebar_frame, 
+            text="❔ AYUDA / MANUAL", 
+            fg_color="#6c757d",       # Un gris de soporte prolijo para diferenciarlo
+            hover_color="#5a6268",
+            text_color="white", 
+            font=("Arial", 14, "bold"), 
+            height=42, 
+            command=self.abrir_ayuda   # Llama al método de la clase
+        )
+        
 
     def toggle_menu(self, menu_name):
         """Maneja el estado abierto/cerrado de los acordeones cambiando las flechas"""
@@ -199,6 +213,7 @@ class MainView:
         self.submenus["ABM"].pack_forget()
         self.btn_sistema.pack_forget()
         self.submenus["SISTEMA"].pack_forget()
+        self.btn_ayuda.pack_forget() # <-- Agregamos el forget del botón de ayuda
 
         # Re-empaquetado secuencial con espaciados cómodos
         self.btn_movimientos.pack(fill="x", pady=(10, 0))
@@ -212,6 +227,9 @@ class MainView:
         self.btn_sistema.pack(fill="x", pady=(10, 0))
         if self.menu_states["SISTEMA"]:
             self.submenus["SISTEMA"].pack(fill="x", padx=10, pady=5)
+
+        # Empaquetamos el botón de ayuda clavado abajo de todo usando side="bottom"
+        self.btn_ayuda.pack(side="bottom", fill="x", padx=15, pady=20)
 
     def abrir_modulo(self, nombre_modulo):
         """Limpia el panel de contenido central y carga dinámicamente la vista seleccionada"""
@@ -267,7 +285,20 @@ class MainView:
                 font=("Arial", 24)
             )
             self.welcome_label.pack(pady=100)
-    def abrir_ayuda():
-        # Abre el index.html en el navegador predeterminado de la máquina
-        url = "file://" + os.path.realpath("manual/index.html")
-        webbrowser.open(url)
+    def abrir_ayuda(self):
+        """Busca la ruta del manual local y lo abre de forma segura en el navegador"""
+        from tkinter import messagebox
+        try:
+            # os.path.abspath asegura que resuelva la ruta real sin importar el disco de instalación
+            ruta_manual = os.path.abspath("manual/index.html")
+            
+            if os.path.exists(ruta_manual):
+                url = "file://" + ruta_manual
+                webbrowser.open(url)
+            else:
+                messagebox.showerror(
+                    "Manual no encontrado", 
+                    f"No se pudo localizar el archivo index.html en la ruta:\n{ruta_manual}"
+                )
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo desplegar el manual de usuario:\n{e}")
