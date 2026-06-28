@@ -11,6 +11,7 @@ from movinsumos_view import MovInsumosView
 from PIL import Image
 import os
 import webbrowser
+import subprocess
 
 class MainView:
     def __init__(self, root, db_connection=None):  # Agregamos db_connection para pasarle el control a los módulos
@@ -263,6 +264,28 @@ class MainView:
             self.vista_insumos = InsumosView(self.content_frame, self.db)  
         elif nombre_modulo == "Mov. Insumos":
             self.vista_mov_insumos = MovInsumosView(self.content_frame, self.db)
+        # =====================================================================
+        # NUEVO: Interceptamos el botón de la Balanza para lanzar el ejecutable
+        # =====================================================================
+        elif nombre_modulo == "Sistema Balanza":
+            from tkinter import messagebox
+            try:
+                # Definimos la ruta absoluta o relativa hacia el ejecutable externo
+                ruta_balanza = os.path.abspath("Trazabilidad.exe")
+                
+                if os.path.exists(ruta_balanza):
+                    # Popen lanza el .exe en un proceso independiente (asincrónico)
+                    # Evita que FlowTrack se congele mientras el operario pesa
+                    subprocess.Popen([ruta_balanza])
+                else:
+                    messagebox.showerror(
+                        "Ejecutable no encontrado", 
+                        f"No se pudo localizar el sistema de pesajes en la ruta:\n{ruta_balanza}"
+                    )
+            except Exception as e:
+                messagebox.showerror("Error de Lanzamiento", f"No se pudo iniciar Trazabilidad.exe:\n{e}")
+        # =====================================================================    
+            
         elif nombre_modulo == "Mov. Combustibles":
             # NUEVO: Cuando hagamos la vista de cargas, apuntará aquí sin pisar el ABM
             # Por ahora, como todavía no lo creamos, caerá de forma segura en el cartel "En desarrollo..."
