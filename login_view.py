@@ -53,6 +53,14 @@ class LoginView(ctk.CTkFrame):
             command=self._login
         )
         self.login_button.pack(pady=(20, 30), padx=40)
+        # --- NUEVO: LABEL PARA MOSTRAR ERRORES DE LOGUEO ---
+        self.lbl_error = ctk.CTkLabel(
+            self, 
+            text="", 
+            font=("Arial", 14, "bold"), 
+            text_color="#bc4749" # Usamos el rojo ladrillo del sistema para alertas
+        )
+        self.lbl_error.pack(pady=(0, 20), padx=40)
 
         # Enfoque del cursor según corresponda
         if ultimo_usuario:
@@ -84,3 +92,8 @@ class LoginView(ctk.CTkFrame):
             except Exception as e:
                 print(f"Error al leer último usuario en login_view: {e}")
         return ""
+    def mostrar_error(self, mensaje="Contraseña o usuario incorrectos"):
+        """Muestra el texto de error en rojo y limpia el campo de contraseña"""
+        self.lbl_error.configure(text=mensaje)
+        self.password_entry.delete(0, "end")
+        self.password_entry.focus()

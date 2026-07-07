@@ -9,6 +9,15 @@ import json
 from database import Database
 from login_view import LoginView
 from main_view import MainView
+import ctypes
+
+# --- TRUCO PARA EL ÍCONO EN LA BARRA DE TAREAS ---
+try:
+    # Le asignamos un ID de modelo de usuario de aplicación (AppUserModelID) propio al proceso
+    myappid = 'dgsoluciones.flowtrack.sistema.0.1.5'  
+    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+except Exception:
+    pass
 
 # =====================================================================
 # CONFIGURACIÓN DE ACTUALIZACIÓN AUTOMÁTICA (GITHUB PÚBLICO)
@@ -105,6 +114,17 @@ class FlowTrackApp:
         self.show_login()
 
     def _set_app_icon(self):
+        import ctypes  # Lo importamos acá de forma segura
+        
+        # --- TRUCO MÁGICO PARA LA BARRA DE TAREAS ---
+        try:
+            # Le asignamos un identificador único al proceso del sistema
+            myappid = 'dgsoluciones.flowtrack.sistema.1.0' 
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+        except Exception as e:
+            print(f"No se pudo setear el AppUserModelID: {e}")
+
+        # --- CARGA DEL ÍCONO EN LA VENTANA ---
         ruta_ico = os.path.join(os.path.dirname(__file__), "icono_app.ico")
         if os.path.exists(ruta_ico):
             try:
@@ -149,8 +169,14 @@ class FlowTrackApp:
                 return
             else:
                 print("Login fallido: Contraseña incorrecta.")
+                # --- ACTUALIZACIÓN: Mostramos el error en la interfaz ---
+                if self.login_view:
+                    self.login_view.mostrar_error("La contraseña ingresada es incorrecta.")
         else:
             print("Login fallido: Usuario no encontrado.")
+            # --- ACTUALIZACIÓN: Mostramos el error en la interfaz ---
+            if self.login_view:
+                self.login_view.mostrar_error("El usuario ingresado no existe.")
 
     def show_main_window(self):
         if self.login_view:

@@ -8,6 +8,9 @@ from vehiculos_view import VehiculosView
 from combustibles_view import CombustiblesView
 from insumos_view import InsumosView
 from movinsumos_view import MovInsumosView
+from movcombustibles_view import MovCombustiblesView
+from proveedores_view import ProveedoresView
+from clientes_view import ClientesView
 from PIL import Image
 import os
 import webbrowser
@@ -98,7 +101,8 @@ class MainView:
             {"texto": "Lotes", "icono": "lote.png"},
             {"texto": "Sistema Balanza", "icono": "balanza.png"},
             {"texto": "Mov. Combustibles", "icono": "combustible.png"},
-            {"texto": "Mov. Insumos", "icono": "insumo.png"}
+            {"texto": "Mov. Insumos", "icono": "insumo.png"},
+            {"texto": "Cuentas Corrientes", "icono": "usuario.png"}
         ]
         
         for opc in opciones_mov:
@@ -126,6 +130,7 @@ class MainView:
             {"texto": "Insumos", "icono": "insumo.png"},
             {"texto": "Combustibles", "icono": "combustible.png"},
             {"texto": "Clientes", "icono": "cliente.png"},
+            {"texto": "Proveedores", "icono": "cliente.png"},  # <-- AGREGADO AQUÍ
             {"texto": "Vehiculos", "icono": "vehiculo.png"},
             {"texto": "Parcelas", "icono": "chacra.png"},
             {"texto": "Chacras", "icono": "chacra.png"}
@@ -287,18 +292,20 @@ class MainView:
         # =====================================================================    
             
         elif nombre_modulo == "Mov. Combustibles":
-            # NUEVO: Cuando hagamos la vista de cargas, apuntará aquí sin pisar el ABM
-            # Por ahora, como todavía no lo creamos, caerá de forma segura en el cartel "En desarrollo..."
-            user_id = getattr(self.root, "current_user_id", 1)
-            # self.vista_mov_combustibles = MovCombustiblesView(self.content_frame, self.db, current_user_id=user_id)
-            # Dejamos temporalmente el aviso para que no falle al hacer clic:
+            # Levantamos el nuevo módulo inyectando el contenedor central y la conexión a la Base de Datos
+            self.vista_mov_combustibles = MovCombustiblesView(self.content_frame, self.db)
+        elif nombre_modulo == "Proveedores":  
+            self.vista_proveedores = ProveedoresView(self.content_frame, self.db)
+        elif nombre_modulo == "Clientes":  
+            self.vista_clientes = ClientesView(self.content_frame, self.db)
+        elif nombre_modulo == "Cuentas Corrientes":  # <-- AGREGAR ESTE BLOQUE AQUÍ
             self.welcome_label = ctk.CTkLabel(
                 self.content_frame, 
-                text="Módulo de Registro de Entradas y Salidas de Combustible en desarrollo...", 
-                font=("Arial", 16, "bold"), 
-                text_color="gray"
+                text="Módulo: CUENTAS CORRIENTES\n(Próximamente en desarrollo)", 
+                text_color="gray", 
+                font=("Arial", 24)
             )
-            self.welcome_label.pack(expand=True)
+            self.welcome_label.pack(pady=100)
         else:
             # Mensaje temporal para los módulos que aún no creamos
             self.welcome_label = ctk.CTkLabel(
