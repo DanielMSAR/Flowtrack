@@ -44,6 +44,12 @@ class ChacrasView(ctk.CTkFrame):
         self.ent_coordenadas = ctk.CTkEntry(self.frame_form, width=290, font=("Arial", 13), placeholder_text="-27.591, -55.234")
         self.ent_coordenadas.pack(padx=15, pady=(2, 12))
 
+        # --- NUEVO CAMPO: NÚMERO CATASTRAL ---
+        lbl_numero = ctk.CTkLabel(self.frame_form, text="Número Catastral:", font=("Arial", 12, "bold"), text_color="black")
+        lbl_numero.pack(padx=15, anchor="w")
+        self.ent_numero = ctk.CTkEntry(self.frame_form, width=290, font=("Arial", 13), placeholder_text="Ej: 14-255-A")
+        self.ent_numero.pack(padx=15, pady=(2, 12))
+
         # Campo: Hectáreas
         lbl_has = ctk.CTkLabel(self.frame_form, text="Superficie (Hectáreas):", font=("Arial", 12, "bold"), text_color="black")
         lbl_has.pack(padx=15, anchor="w")
@@ -73,18 +79,21 @@ class ChacrasView(ctk.CTkFrame):
         style.configure("Chacras.Treeview.Heading", font=("Arial", 12, "bold"), background="#8cb04e", foreground="black", relief="flat")
         style.map("Chacras.Treeview", background=[("selected", "#b9d291")], foreground=[("selected", "black")])
 
-        columnas = ("id", "chacra", "coordenadas", "hectareas")
+        # Definición de columnas y cabeceras
+        columnas = ("id", "chacra", "coordenadas", "numero", "hectareas")
         self.tree = ttk.Treeview(self.frame_tabla, columns=columnas, show="headings", style="Chacras.Treeview")
-        
         self.tree.heading("id", text="ID")
-        self.tree.heading("chacra", text="Nombre de la Chacra / Establecimiento")
+        self.tree.heading("chacra", text="Chacra / Establecimiento")
         self.tree.heading("coordenadas", text="Ubicación / Coordenadas")
+        self.tree.heading("numero", text="Nº Catastral")
         self.tree.heading("hectareas", text="Hectáreas")
 
-        self.tree.column("id", width=60, anchor="center")
-        self.tree.column("chacra", width=250, anchor="w")
-        self.tree.column("coordenadas", width=180, anchor="center")
-        self.tree.column("hectareas", width=100, anchor="e")
+        # Ancho y alineaciones de las columnas
+        self.tree.column("id", width=50, anchor="center")
+        self.tree.column("chacra", width=220, anchor="w")
+        self.tree.column("coordenadas", width=140, anchor="center")
+        self.tree.column("numero", width=120, anchor="center")
+        self.tree.column("hectareas", width=90, anchor="e")
 
         scrollbar = ttk.Scrollbar(self.frame_tabla, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscrollcommand=scrollbar.set)
@@ -102,16 +111,17 @@ class ChacrasView(ctk.CTkFrame):
         for item in self.tree.get_children():
             self.tree.delete(item)
             
-        query = "SELECT idchacra, chacra, coordenadas, hectareas FROM chacras ORDER BY idchacra DESC"
+        query = "SELECT idchacra, chacra, coordenadas, numero, hectareas FROM chacras ORDER BY idchacra DESC"
         resultados = self.db.execute_query(query)
         
         if resultados:
             for fila in resultados:
                 coords_visibles = fila[2] if fila[2] else "Sin registrar"
-                has_visibles = fila[3] if fila[3] is not None else 0.0
+                num_catastral = fila[3] if fila[3] else "Sin registrar"
+                has_visibles = fila[4] if fila[4] is not None else 0.0
                 
                 self.tree.insert("", "end", values=(
-                    fila[0], fila[1], coords_visibles, f"{has_visibles:.2f} Has"
+                    fila[0], fila[1], coords_visibles, num_catastral, f"{has_visibles:.2f} Has"
                 ))
 
     def _on_fila_seleccionada(self, event):
@@ -125,21 +135,26 @@ class ChacrasView(ctk.CTkFrame):
         
         self.id_chacra_seleccionada = valores[0]
         
-        # Limpiamos y rellenamos campos
+        # Limpiamos y rellenamos el nombre
         self.ent_chacra.delete(0, "end")
         self.ent_chacra.insert(0, valores[1])
         
+        # Limpiamos y rellenamos coordenadas
         self.ent_coordenadas.delete(0, "end")
-        # Quitamos el texto por defecto si estaba vacío en DB
         texto_coords = valores[2] if valores[2] != "Sin registrar" else ""
         self.ent_coordenadas.insert(0, texto_coords)
         
+        # Limpiamos y rellenamos número catastral
+        self.ent_numero.delete(0, "end")
+        texto_num = valores[3] if valores[3] != "Sin registrar" else ""
+        self.ent_numero.insert(0, texto_num)
+        
+        # Limpiamos y rellenamos hectáreas
         self.ent_hectareas.delete(0, "end")
-        # Quitamos la palabra ' Has' para dejar solo el número flotante legible
-        texto_has = str(valores[3]).replace(" Has", "")
+        texto_has = str(valores[4]).replace(" Has", "")
         self.ent_hectareas.insert(0, texto_has)
 
-        # Habilitamos botones de edición, deshabilitamos el de alta directa temporalmente
+        # Habilitamos botones de edición
         self.btn_guardar.configure(state="disabled")
         self.btn_modificar.configure(state="normal")
         self.btn_eliminar.configure(state="normal")
@@ -149,6 +164,7 @@ class ChacrasView(ctk.CTkFrame):
         self.id_chacra_seleccionada = None
         self.ent_chacra.delete(0, "end")
         self.ent_coordenadas.delete(0, "end")
+        self.ent_numero.delete(0, "end")
         self.ent_hectareas.delete(0, "end")
         
         self.btn_guardar.configure(state="normal")
@@ -160,6 +176,7 @@ class ChacrasView(ctk.CTkFrame):
         """Inserta una nueva chacra validando duplicados e integridad"""
         nombre = self.ent_chacra.get().strip()
         coords = self.ent_coordenadas.get().strip()
+        num_catastro = self.ent_numero.get().strip()
         has_str = self.ent_hectareas.get().strip()
 
         if not nombre or not has_str:
@@ -172,27 +189,26 @@ class ChacrasView(ctk.CTkFrame):
             messagebox.showwarning("Dato Incorrecto", "Las hectáreas deben ser un número válido (ejemplo: 45.5 o 12).")
             return
 
-        # Validar duplicados de nombre
         query_check = "SELECT idchacra FROM chacras WHERE chacra = %s"
         if self.db.execute_query(query_check, (nombre,)):
             messagebox.showerror("Error de Duplicado", f"Ya existe una chacra registrada con el nombre '{nombre}'.")
             return
 
-        # Insertar
-        query_insert = "INSERT INTO chacras (chacra, coordenadas, hectareas) VALUES (%s, %s, %s)"
-        self.db.execute_non_query(query_insert, (nombre, coords if coords else None, hectareas))
+        query_insert = "INSERT INTO chacras (chacra, coordenadas, numero, hectareas) VALUES (%s, %s, %s, %s)"
+        self.db.execute_non_query(query_insert, (nombre, coords if coords else None, num_catastro if num_catastro else None, hectareas))
         
         self.cargar_chacras_db()
         self._limpiar_formulario()
         messagebox.showinfo("Éxito", "Chacra registrada correctamente en el sistema.")
 
     def _modificar_chacra(self):
-        """Actualiza los datos de la chacra seleccionada"""
+        """Actualiza los datos de la chacra seleccionada con el orden de tupla correcto"""
         if not self.id_chacra_seleccionada:
             return
 
         nombre = self.ent_chacra.get().strip()
         coords = self.ent_coordenadas.get().strip()
+        num_catastro = self.ent_numero.get().strip()
         has_str = self.ent_hectareas.get().strip()
 
         if not nombre or not has_str:
@@ -205,9 +221,13 @@ class ChacrasView(ctk.CTkFrame):
             messagebox.showwarning("Dato Incorrecto", "Las hectáreas deben ser un número válido.")
             return
 
-        # Actualizar
-        query_update = "UPDATE chacras SET chacra = %s, coordenadas = %s, hectareas = %s WHERE idchacra = %s"
-        self.db.execute_non_query(query_update, (nombre, coords if coords else None, hectareas, self.id_chacra_seleccionada))
+        # Consulta SQL armada
+        query_update = "UPDATE chacras SET chacra = %s, coordenadas = %s, numero = %s, hectareas = %s WHERE idchacra = %s"
+        
+        # Tupla ordenada estrictamente igual a los %s del UPDATE
+        parametros = (nombre, coords if coords else None, num_catastro if num_catastro else None, hectareas, self.id_chacra_seleccionada)
+        
+        self.db.execute_non_query(query_update, parametros)
         
         self.cargar_chacras_db()
         self._limpiar_formulario()
@@ -218,7 +238,6 @@ class ChacrasView(ctk.CTkFrame):
         if not self.id_chacra_seleccionada:
             return
 
-        # Validación de Integridad Referencial: Verificar si tiene lotes asociados
         query_trazabilidad = "SELECT id FROM loteagrario WHERE idchacra = %s"
         asociados = self.db.execute_query(query_trazabilidad, (self.id_chacra_seleccionada,))
         

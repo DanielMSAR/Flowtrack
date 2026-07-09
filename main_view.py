@@ -273,23 +273,8 @@ class MainView:
         # NUEVO: Interceptamos el botón de la Balanza para lanzar el ejecutable
         # =====================================================================
         elif nombre_modulo == "Sistema Balanza":
-            from tkinter import messagebox
-            try:
-                # Definimos la ruta absoluta o relativa hacia el ejecutable externo
-                ruta_balanza = os.path.abspath("Trazabilidad.exe")
-                
-                if os.path.exists(ruta_balanza):
-                    # Popen lanza el .exe en un proceso independiente (asincrónico)
-                    # Evita que FlowTrack se congele mientras el operario pesa
-                    subprocess.Popen([ruta_balanza])
-                else:
-                    messagebox.showerror(
-                        "Ejecutable no encontrado", 
-                        f"No se pudo localizar el sistema de pesajes en la ruta:\n{ruta_balanza}"
-                    )
-            except Exception as e:
-                messagebox.showerror("Error de Lanzamiento", f"No se pudo iniciar Trazabilidad.exe:\n{e}")
-        # =====================================================================    
+            from pesajes_view import PesajesView
+            self.vista_pesajes = PesajesView(self.content_frame, self.db)
             
         elif nombre_modulo == "Mov. Combustibles":
             # Levantamos el nuevo módulo inyectando el contenedor central y la conexión a la Base de Datos
