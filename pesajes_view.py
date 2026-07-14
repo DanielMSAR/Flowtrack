@@ -2,6 +2,7 @@
 import customtkinter as ctk
 from tkinter import ttk, messagebox
 from datetime import datetime
+from ticket_generator import generar_ticket_pdf, abrir_e_imprimir_pdf
 import os
 import configparser
 
@@ -50,7 +51,7 @@ class PesajesView(ctk.CTkFrame):
         self._armar_pestaña_segunda()
         self._armar_pestaña_historial()
 
-# =================================================================
+    # =================================================================
     # PESTAÑA 1: PRIMER PESADA (ALTAS / ENTRADAS)
     # =================================================================
     def _armar_pestaña_primera(self):
@@ -76,7 +77,7 @@ class PesajesView(ctk.CTkFrame):
         self.cb_proveedor = ctk.CTkComboBox(frame_izq, values=self._obtener_lista_proveedores(), width=280)
         self.cb_proveedor.pack(padx=15, pady=(2, 10))
 
-        # --- MODIFICADO: ORIGEN COMBOBOX CON FORMATO LOTE Y CHACRA ---
+        # --- ORIGEN COMBOBOX CON FORMATO LOTE Y CHACRA ---
         ctk.CTkLabel(frame_izq, text="Origen (Lote / Chacra) *", text_color="black", font=("Arial", 12, "bold")).pack(padx=15, anchor="w")
         self.cb_origen = ctk.CTkComboBox(frame_izq, values=self._obtener_lista_lotes_agrarios(), width=280)
         self.cb_origen.pack(padx=15, pady=(2, 10))
@@ -87,10 +88,10 @@ class PesajesView(ctk.CTkFrame):
 
         ctk.CTkLabel(frame_der, text="Datos de Carga y Pesaje", font=("Arial", 14, "bold"), text_color="black").pack(pady=10, padx=15, anchor="w")
 
-        # 1. Agrupación limpia de los campos de texto
-        ctk.CTkLabel(frame_der, text="Producto", text_color="black").pack(padx=15, anchor="w")
-        self.ent_producto = ctk.CTkEntry(frame_der, width=280)
-        self.ent_producto.pack(padx=15, pady=(2, 10))
+        # 1. Agrupación limpia de los campos de texto con el NUEVO COMBOBOX
+        ctk.CTkLabel(frame_der, text="Producto *", text_color="black", font=("Arial", 12, "bold")).pack(padx=15, anchor="w")
+        self.cb_producto = ctk.CTkComboBox(frame_der, values=self._obtener_lista_productos_activos(), width=280)
+        self.cb_producto.pack(padx=15, pady=(2, 10))
 
         ctk.CTkLabel(frame_der, text="Transporte / Empresa", text_color="black").pack(padx=15, anchor="w")
         self.ent_transporte = ctk.CTkEntry(frame_der, width=280)
@@ -105,13 +106,13 @@ class PesajesView(ctk.CTkFrame):
         frame_balanza_1 = ctk.CTkFrame(frame_der, fg_color="transparent")
         frame_balanza_1.pack(fill="x", padx=15, pady=(2, 10))
         
-        self.ent_peso_entrada = ctk.CTkEntry(frame_balanza_1, width=160, font=("Arial", 16, "bold"), text_color="#1b4332")
+        self.ent_peso_entrada = ctk.CTkEntry(frame_balanza_1, width=160, font=("Arial", 16, "bold"), text_color="#ceffea")
         self.ent_peso_entrada.pack(side="left", padx=(0, 10))
         
         self.btn_leer_balanza_1 = ctk.CTkButton(frame_balanza_1, text="Capturar Balanza", fg_color="#3a7ebf", hover_color="#2b5e8f", font=("Arial", 11, "bold"), command=lambda: self._leer_puerto_balanza(1))
         self.btn_leer_balanza_1.pack(side="left", fill="x", expand=True)
 
-        # 3. MOVIDO AQUÍ: El acceso de configuración queda abajo, integrado con el flujo técnico
+        # 3. El acceso de configuración queda abajo, integrado con el flujo técnico
         self.btn_config_balanza = ctk.CTkButton(
             frame_der, 
             text="⚙ Configurar Puerto Balanza", 
@@ -176,7 +177,7 @@ class PesajesView(ctk.CTkFrame):
         frame_balanza_2 = ctk.CTkFrame(self.frame_cierre, fg_color="transparent")
         frame_balanza_2.pack(fill="x", padx=15, pady=(2, 15))
         
-        self.ent_peso_salida = ctk.CTkEntry(frame_balanza_2, width=160, font=("Arial", 16, "bold"), text_color="#bc4749")
+        self.ent_peso_salida = ctk.CTkEntry(frame_balanza_2, width=160, font=("Arial", 16, "bold"), text_color="#f88284")
         self.ent_peso_salida.pack(side="left", padx=(0, 10))
         
         self.btn_leer_balanza_2 = ctk.CTkButton(frame_balanza_2, text="Capturar Balanza", fg_color="#3a7ebf", hover_color="#2b5e8f", font=("Arial", 11, "bold"), command=lambda: self._leer_puerto_balanza(2))
@@ -200,6 +201,15 @@ class PesajesView(ctk.CTkFrame):
         
         self.btn_anular = ctk.CTkButton(frame_top, text="Anular Ticket Seleccionado", fg_color="#bf3a3a", hover_color="#8f2b2b", command=self._anular_ticket)
         self.btn_anular.pack(side="right", padx=5)
+        # --- NUEVO BOTÓN DE REIMPRIMIR (AGREGAR ESTA LÍNEA AQUÍ) ---
+        self.btn_reimprimir = ctk.CTkButton(
+            frame_top, 
+            text="Reimprimir Ticket", 
+            fg_color="#2b6cb0", 
+            hover_color="#1a365d", 
+            command=self._reimprimir_ticket_cerrado
+        )
+        self.btn_reimprimir.pack(side="right", padx=5)
 
         self.tree_historial = ttk.Treeview(self.tab_historial, columns=("id", "fecha", "patente", "remito", "entrada", "salida", "neto", "producto", "estado"), show="headings")
         self.tree_historial.heading("id", text="Ticket ID")
@@ -224,7 +234,10 @@ class PesajesView(ctk.CTkFrame):
     # =================================================================
     def _al_cambiar_pestaña(self):
         pestaña_activa = self.tabview.get()
-        if pestaña_activa == "Segunda Pesada":
+        if pestaña_activa == "Primer Pesada":
+            # Recarga el combobox de productos por si se agregaron nuevos en el ABM
+            self.cb_producto.configure(values=self._obtener_lista_productos_activos())
+        elif pestaña_activa == "Segunda Pesada":
             self._cargar_pendientes_db()
         elif pestaña_activa == "Pesajes Realizados":
             self._cargar_historial_db()
@@ -234,8 +247,15 @@ class PesajesView(ctk.CTkFrame):
         chofer = self.ent_chofer.get().strip()
         bruto_str = self.ent_peso_entrada.get().strip()
         remito = self.ent_comprobante.get().strip()
-        prod = self.ent_producto.get().strip()
         transp = self.ent_transporte.get().strip()
+
+        # --- EXTRACCIÓN DEL PRODUCTO SELECCIONADO DESDE EL COMBO ---
+        prod_seleccionado = self.cb_producto.get()
+        texto_producto = ""
+        if prod_seleccionado and " - " in prod_seleccionado:
+            texto_producto = prod_seleccionado.split(" - ")[1]
+        else:
+            texto_producto = prod_seleccionado
 
         prov_seleccionado = self.cb_proveedor.get()
         id_prov = None
@@ -260,6 +280,10 @@ class PesajesView(ctk.CTkFrame):
         if not id_origen:
             messagebox.showwarning("Atención", "Debe seleccionar obligatoriamente un Lote Agrario de Origen.")
             return
+            
+        if not texto_producto or texto_producto == "Sin Productos Activos":
+            messagebox.showwarning("Atención", "Debe seleccionar un producto válido.")
+            return
 
         try:
             peso_ent = int(bruto_str)
@@ -273,11 +297,11 @@ class PesajesView(ctk.CTkFrame):
         (fecha, chasis, chofer, pesoentrada, pesosalida, pesofinal, comprobante, Producto, Transporte, origen, idorigen, idproveedor, usualta, falta, anulado) 
         VALUES (%s, %s, %s, %s, 0, 0, %s, %s, %s, %s, %s, %s, %s, %s, 0)"""
         
-        params = (ahora, patente, chofer if chofer else None, peso_ent, remito if remito else None, prod if prod else None, transp if transp else None, texto_origen, id_origen, id_prov, self.current_user_id, ahora)
+        params = (ahora, patente, chofer if chofer else None, peso_ent, remito if remito else None, texto_producto, transp if transp else None, texto_origen, id_origen, id_prov, self.current_user_id, ahora)
         
         try:
             self.db.execute_non_query(query, params)
-            messagebox.showinfo("Éxito", f"Primer pesada registrada para el camión {patente} con Origen Lote #{id_origen}.")
+            messagebox.showinfo("Éxito", f"Primer pesada registrada para el camión {patente} con el producto {texto_producto}.")
             self._limpiar_pestaña_uno()
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo guardar la primer pesada:\n{e}")
@@ -287,8 +311,13 @@ class PesajesView(ctk.CTkFrame):
         if not seleccion:
             return
         
-        id_registro = self.tree_pendientes.item(seleccion[0])["values"][0]
-        peso_entrada_original = int(self.tree_pendientes.item(seleccion[0])["values"][4])
+        # Obtenemos los valores de la grilla de pendientes
+        valores_grilla = self.tree_pendientes.item(seleccion[0])["values"]
+        id_registro = valores_grilla[0]
+        fecha_entrada = valores_grilla[1]
+        patente = valores_grilla[2]
+        chofer = valores_grilla[3]
+        peso_entrada_original = int(valores_grilla[4])
         
         salida_str = self.ent_peso_salida.get().strip()
         destino = self.ent_destino.get().strip()
@@ -313,13 +342,51 @@ class PesajesView(ctk.CTkFrame):
         
         try:
             self.db.execute_non_query(query, (peso_sal, neto, destino if destino else None, observacion if observacion else None, self.current_user_id, ahora, id_registro))
-            messagebox.showinfo("Éxito", f"Ticket No. {id_registro} completado. Peso Neto: {neto} KG.")
+            
+            # --- OBTENER INFORMACIÓN DE REMITO Y PRODUCTO DE ESTE TICKET ---
+            # Hacemos un SELECT rápido para traer los datos faltantes (Producto, Remito/Comprobante, Transporte, Origen)
+            # que guardamos en la primera pesada para que salgan completos en el PDF impreso.
+            datos_db = self.db.execute_query(
+                "SELECT comprobante, Producto, Transporte, origen FROM pesajes WHERE idregistro = %s", 
+                (id_registro,)
+            )
+            
+            remito, producto, transporte, origen = "S/N", "General", "Propio", "General"
+            if datos_db:
+                remito = datos_db[0][0] if datos_db[0][0] else "S/N"
+                producto = datos_db[0][1] if datos_db[0][1] else "General"
+                transporte = datos_db[0][2] if datos_db[0][2] else "Propio"
+                origen = datos_db[0][3] if datos_db[0][3] else "General"
+
+            # --- PREPARAR MAPEO DE DATOS PARA EL PDF ---
+            datos_impresion = {
+                "id": id_registro,
+                "fecha": ahora,
+                "patente": patente,
+                "chofer": chofer if chofer else "Asociado",
+                "transporte": transporte,
+                "producto": producto,
+                "origen": origen,
+                "destino": destino if destino else "Establecimiento",
+                "remito": remito,
+                "entrada": peso_entrada_original,
+                "salida": peso_sal,
+                "neto": neto
+            }
+
+            # Generar el PDF con formato A4 con dos copias exactas y abrirlo para imprimir
+            nombre_archivo = f"ticket_balanza_{id_registro}.pdf"
+            generar_ticket_pdf(datos_impresion, nombre_archivo)
+            abrir_e_imprimir_pdf(nombre_archivo)
+
+            # --- LIMPIEZA DE LA INTERFAZ ORIGINAL ---
+            messagebox.showinfo("Éxito", f"Ticket No. {id_registro} completado. Guardado e impreso. Peso Neto: {neto} KG.")
             self._cargar_pendientes_db()
             self.ent_peso_salida.delete(0, "end")
             self.btn_registrar_salida.configure(state="disabled")
             self.lbl_info_camion.configure(text="Seleccione un camión de la grilla izquierda para operar.", text_color="gray")
         except Exception as e:
-            messagebox.showerror("Error", f"Fallo al liquidar ticket:\n{e}")
+            messagebox.showerror("Error", f"Fallo al liquidar ticket o generar PDF:\n{e}")
 
     def _cargar_camion_para_salida(self, event):
         seleccion = self.tree_pendientes.selection()
@@ -359,19 +426,93 @@ class PesajesView(ctk.CTkFrame):
             self._cargar_historial_db()
 
     def _leer_puerto_balanza(self, nro_captura):
-        """Lector dinámico del archivo INI antes de capturar el peso"""
+        """Intenta conectarse a la balanza física por puerto serie y capturar el peso real.
+        Si falla o no puede establecer conexión, muestra una alerta y no altera los campos."""
         puerto, velocidad = self._obtener_parametros_balanza()
-        print(f"Puerto configurado activo: {puerto} a {velocidad} bps")
+        print(f"Intentando conectar al puerto: {puerto} a {velocidad} bps...")
         
-        # Simulador temporal (cuando conectes la balanza real aquí usarás pyserial)
-        import random
-        peso_simulado = random.randint(24000, 44000) if nro_captura == 1 else random.randint(8500, 16000)
-        if nro_captura == 1:
-            self.ent_peso_entrada.delete(0, "end")
-            self.ent_peso_entrada.insert(0, str(peso_simulado))
-        else:
-            self.ent_peso_salida.delete(0, "end")
-            self.ent_peso_salida.insert(0, str(peso_simulado))
+        # 1. Comprobación defensiva de la librería pyserial
+        try:
+            import serial
+        except ImportError:
+            messagebox.showerror(
+                "Librería Faltante", 
+                "No se encontró el paquete 'pyserial' en este entorno.\n\n"
+                "Para solucionarlo, ejecutá en tu consola:\n"
+                "pip install pyserial",
+                parent=self
+            )
+            return
+
+        ser = None
+        try:
+            # 2. Intentamos abrir el puerto serie con un timeout de 2 segundos
+            # para evitar que la interfaz gráfica (Tkinter) se congele si la balanza no responde.
+            ser = serial.Serial(port=puerto, baudrate=velocidad, timeout=2)
+            
+            # Limpiamos los buffers de entrada viejos para asegurar una lectura instantánea y real
+            ser.reset_input_buffer()
+            
+            # 3. Leemos una línea completa enviada por la balanza (espera hasta el salto de línea \n)
+            datos_bytes = ser.readline()
+            
+            if not datos_bytes:
+                raise Exception(
+                    "Timeout de lectura.\nNo se recibieron datos en el tiempo esperado. "
+                    "Verifique que la balanza esté encendida, transmitiendo datos y que el cable esté bien conectado."
+                )
+            
+            # Decodificamos los bytes recibidos evitando caracteres corruptos
+            lectura = datos_bytes.decode('utf-8', errors='ignore').strip()
+            print(f"Datos crudos de balanza: '{lectura}'")
+            
+            # 4. Filtramos la lectura con una expresión regular para extraer solo la parte numérica.
+            # Esto es vital porque las balanzas suelen enviar tramas tipo '+ 12450 kg' o 'ST,GS,  12450'
+            import re
+            numeros = re.findall(r'\d+', lectura)
+            
+            if not numeros:
+                raise Exception(
+                    f"Se abrió el puerto pero no se pudo interpretar un valor numérico válido en la trama.\n"
+                    f"Recibido crudo: '{lectura}'"
+                )
+            
+            # Tomamos la cadena numérica más larga encontrada (que corresponderá al peso)
+            peso_detectado = int(max(numeros, key=len))
+            
+            # 5. Insertamos el peso real en el cuadro de texto correspondiente
+            if nro_captura == 1:
+                self.ent_peso_entrada.delete(0, "end")
+                self.ent_peso_entrada.insert(0, str(peso_detectado))
+            else:
+                self.ent_peso_salida.delete(0, "end")
+                self.ent_peso_salida.insert(0, str(peso_detectado))
+                
+        except serial.SerialException as se:
+            # Error específico del puerto serie (puerto inexistente, ocupado por otro programa como putty, etc.)
+            messagebox.showerror(
+                "Error de Conexión", 
+                f"No se pudo acceder al puerto {puerto}.\n\n"
+                f"Posibles causas:\n"
+                f"1. El puerto está siendo usado por otra aplicación.\n"
+                f"2. El adaptador USB-Serie se desconectó.\n"
+                f"3. El puerto '{puerto}' configurado no existe en este equipo.\n\n"
+                f"Detalle técnico: {se}",
+                parent=self
+            )
+        except Exception as e:
+            # Cualquier otro tipo de error (timeout, decodificación, etc.)
+            messagebox.showerror(
+                "Error de Lectura", 
+                f"Ocurrió un problema al intentar pesar:\n\n{str(e)}",
+                parent=self
+            )
+        finally:
+            # 6. Nos aseguramos de cerrar SIEMPRE el puerto serie si quedó abierto,
+            # previniendo que el puerto quede bloqueado para futuras capturas.
+            if ser and ser.is_open:
+                ser.close()
+                print("Puerto serie cerrado correctamente.")
 
     # =================================================================
     # GESTIÓN Y CONFIGURACIÓN DE BALANZA (ARCHIVO INI)
@@ -485,6 +626,15 @@ class PesajesView(ctk.CTkFrame):
     # =================================================================
     # POBLADORES DE COMBOBOX COLECTORES DE TUS ABM
     # =================================================================
+    def _obtener_lista_productos_activos(self):
+        """Trae de manera dinámica la lista de productos con estado activo desde MariaDB"""
+        try:
+            res = self.db.execute_query("SELECT id, Producto FROM productos WHERE activo = 1 ORDER BY Producto ASC")
+            return [f"{f[0]} - {f[1]}" for f in res] if res else ["Sin Productos Activos"]
+        except Exception as e:
+            print(f"Error al cargar productos activos: {e}")
+            return ["1 - Producto General"]
+
     def _obtener_lista_vehiculos(self):
         try:
             res = self.db.execute_query("SELECT patente FROM vehiculos ORDER BY patente ASC")
@@ -520,5 +670,86 @@ class PesajesView(ctk.CTkFrame):
         self.ent_chofer.delete(0, "end")
         self.ent_peso_entrada.delete(0, "end")
         self.ent_comprobante.delete(0, "end")
-        self.ent_producto.delete(0, "end")
         self.ent_transporte.delete(0, "end")
+        # Restablecemos el combobox de producto a la primera opción
+        opciones = self._obtener_lista_productos_activos()
+        self.cb_producto.configure(values=opciones)
+        if opciones:
+            self.cb_producto.set(opciones[0])
+            
+            
+    def _reimprimir_ticket_cerrado(self):
+        # 1. Obtener la fila seleccionada de la grilla de historial
+        seleccion = self.tree_historial.selection()
+        if not seleccion:
+            messagebox.showwarning("Atención", "Por favor, seleccione un pesaje del historial para reimprimir.")
+            return
+
+        # Obtenemos los valores de la fila
+        valores = self.tree_historial.item(seleccion[0], "values")
+        
+        try:
+            id_registro = valores[0]
+            estado = valores[8]
+        except IndexError:
+            messagebox.showerror("Error", "No se pudieron recuperar los datos del ticket seleccionado.")
+            return
+
+        if estado == "ANULADO":
+            messagebox.showwarning("Atención", "No se puede reimprimir un ticket que ha sido anulado.")
+            return
+
+        # 2. Consultar TODOS los datos necesarios de la base de datos usando 'idregistro'
+        try:
+            query = """
+                SELECT fecha, chasis, chofer, pesoentrada, pesosalida, pesofinal, comprobante, Producto, Transporte, origen, Destino 
+                FROM pesajes 
+                WHERE idregistro = %s
+            """
+            datos_db = self.db.execute_query(query, (id_registro,))
+            
+            if not datos_db:
+                messagebox.showerror("Error", f"No se encontraron registros en la base de datos para el Ticket #{id_registro}.")
+                return
+            
+            # Desempaquetamos de forma segura el registro obtenido
+            registro = datos_db[0]
+            fecha_mov = registro[0]
+            patente = registro[1]
+            chofer = registro[2] if registro[2] else "Asociado"
+            entrada = registro[3]
+            salida = registro[4]
+            neto = registro[5]
+            remito = registro[6] if registro[6] else "S/N"
+            producto = registro[7] if registro[7] else "General"
+            transporte = registro[8] if registro[8] else "Propio"
+            origen = registro[9] if registro[9] else "General"
+            destino = registro[10] if registro[10] else "Establecimiento"
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al consultar la base de datos para reimpresión:\n{e}")
+            return
+
+        # 3. Mapear datos al diccionario de impresión
+        datos_impresion = {
+            "id": id_registro,
+            "fecha": fecha_mov,
+            "patente": patente,
+            "chofer": chofer,
+            "transporte": transporte,
+            "producto": producto,
+            "origen": origen,
+            "destino": destino,
+            "remito": remito,
+            "entrada": entrada,
+            "salida": salida,
+            "neto": neto
+        }
+
+        # 4. Generar el PDF y mandarlo a abrir para impresión
+        try:
+            nombre_archivo = f"ticket_balanza_reimpresion_{id_registro}.pdf"
+            generar_ticket_pdf(datos_impresion, nombre_archivo)
+            abrir_e_imprimir_pdf(nombre_archivo)
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo generar o abrir el PDF para reimpresión:\n{str(e)}")

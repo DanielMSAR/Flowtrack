@@ -11,6 +11,7 @@ from movinsumos_view import MovInsumosView
 from movcombustibles_view import MovCombustiblesView
 from proveedores_view import ProveedoresView
 from clientes_view import ClientesView
+from productos_view import ProductosView
 from PIL import Image
 import os
 import webbrowser
@@ -269,9 +270,7 @@ class MainView:
             self.vista_insumos = InsumosView(self.content_frame, self.db)  
         elif nombre_modulo == "Mov. Insumos":
             self.vista_mov_insumos = MovInsumosView(self.content_frame, self.db)
-        # =====================================================================
-        # NUEVO: Interceptamos el botón de la Balanza para lanzar el ejecutable
-        # =====================================================================
+
         elif nombre_modulo == "Sistema Balanza":
             from pesajes_view import PesajesView
             self.vista_pesajes = PesajesView(self.content_frame, self.db)
