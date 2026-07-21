@@ -12,6 +12,7 @@ from movcombustibles_view import MovCombustiblesView
 from proveedores_view import ProveedoresView
 from clientes_view import ClientesView
 from productos_view import ProductosView
+from varios_view import VariosView
 from PIL import Image
 import os
 import webbrowser
@@ -134,7 +135,8 @@ class MainView:
             {"texto": "Proveedores", "icono": "cliente.png"},  # <-- AGREGADO AQUÍ
             {"texto": "Vehiculos", "icono": "vehiculo.png"},
             {"texto": "Parcelas", "icono": "chacra.png"},
-            {"texto": "Chacras", "icono": "chacra.png"}
+            {"texto": "Chacras", "icono": "chacra.png"},
+            {"texto": "Varios", "icono": "actualizar.png"}
         ]
         
         for opc in opciones_abm:
@@ -270,7 +272,8 @@ class MainView:
             self.vista_insumos = InsumosView(self.content_frame, self.db)  
         elif nombre_modulo == "Mov. Insumos":
             self.vista_mov_insumos = MovInsumosView(self.content_frame, self.db)
-
+        elif nombre_modulo == "Varios":  # <-- NUEVO: ENRUTAMIENTO DEL ABM VARIOS/ENVASES
+            self.vista_varios = VariosView(self.content_frame, self.db)
         elif nombre_modulo == "Sistema Balanza":
             from pesajes_view import PesajesView
             self.vista_pesajes = PesajesView(self.content_frame, self.db)

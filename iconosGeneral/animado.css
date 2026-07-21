@@ -1,0 +1,17 @@
+/* Rotate the arrows continuously */
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.flow-arrows {
+  animation: rotate 8s linear infinite;
+}
+
+/* Pulse the monitor circuit */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+.monitor {
+  animation: pulse 2s ease-in-out infinite;
+}

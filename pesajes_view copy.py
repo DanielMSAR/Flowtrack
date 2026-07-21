@@ -101,12 +101,6 @@ class PesajesView(ctk.CTkFrame):
         self.ent_comprobante = ctk.CTkEntry(frame_der, width=280)
         self.ent_comprobante.pack(padx=15, pady=(2, 10))
 
-        # --- NUEVO CAMPO: FECHA Y HORA DE CARGA EN LOTE ---
-        ctk.CTkLabel(frame_der, text="Fecha/Hora de Carga * (DD-MM-YYYY HH:MM)", text_color="black", font=("Arial", 11, "bold")).pack(padx=15, anchor="w")
-        self.ent_fecha_carga = ctk.CTkEntry(frame_der, width=280)
-        self.ent_fecha_carga.pack(padx=15, pady=(2, 10))
-        self.ent_fecha_carga.insert(0, datetime.now().strftime("%d-%m-%Y %H:%M"))
-
         # 2. Sección de Peso y captura inmediata
         ctk.CTkLabel(frame_der, text="Peso Entrada (KG) *", font=("Arial", 12, "bold"), text_color="black").pack(padx=15, anchor="w")
         frame_balanza_1 = ctk.CTkFrame(frame_der, fg_color="transparent")
@@ -207,7 +201,7 @@ class PesajesView(ctk.CTkFrame):
         
         self.btn_anular = ctk.CTkButton(frame_top, text="Anular Ticket Seleccionado", fg_color="#bf3a3a", hover_color="#8f2b2b", command=self._anular_ticket)
         self.btn_anular.pack(side="right", padx=5)
-        
+        # --- NUEVO BOTÓN DE REIMPRIMIR (AGREGAR ESTA LÍNEA AQUÍ) ---
         self.btn_reimprimir = ctk.CTkButton(
             frame_top, 
             text="Reimprimir Ticket", 
@@ -243,9 +237,6 @@ class PesajesView(ctk.CTkFrame):
         if pestaña_activa == "Primer Pesada":
             # Recarga el combobox de productos por si se agregaron nuevos en el ABM
             self.cb_producto.configure(values=self._obtener_lista_productos_activos())
-            # Actualizar el campo de fecha de carga con la hora actual por si pasó tiempo
-            self.ent_fecha_carga.delete(0, "end")
-            self.ent_fecha_carga.insert(0, datetime.now().strftime("%d-%m-%Y %H:%M"))
         elif pestaña_activa == "Segunda Pesada":
             self._cargar_pendientes_db()
         elif pestaña_activa == "Pesajes Realizados":
@@ -257,7 +248,6 @@ class PesajesView(ctk.CTkFrame):
         bruto_str = self.ent_peso_entrada.get().strip()
         remito = self.ent_comprobante.get().strip()
         transp = self.ent_transporte.get().strip()
-        fecha_carga_raw = self.ent_fecha_carga.get().strip()
 
         # --- EXTRACCIÓN DEL PRODUCTO SELECCIONADO DESDE EL COMBO ---
         prod_seleccionado = self.cb_producto.get()
@@ -295,23 +285,6 @@ class PesajesView(ctk.CTkFrame):
             messagebox.showwarning("Atención", "Debe seleccionar un producto válido.")
             return
 
-        if not fecha_carga_raw:
-            messagebox.showwarning("Atención", "Debe ingresar obligatoriamente la Fecha/Hora de Carga en lote.")
-            return
-
-        # --- VALIDACIÓN Y CONVERSIÓN DE LA FECHA DE CARGA ---
-        try:
-            dt_carga = datetime.strptime(fecha_carga_raw, "%d-%m-%Y %H:%M")
-            fechacarga_sql = dt_carga.strftime("%Y-%m-%d %H:%M:00")
-        except ValueError:
-            messagebox.showerror(
-                "Formato Inválido", 
-                "El formato de la fecha de carga es incorrecto.\n\n"
-                "Por favor use el formato de 24 horas: DD-MM-YYYY HH:MM\n"
-                "Ejemplo: 16-07-2026 14:30"
-            )
-            return
-
         try:
             peso_ent = int(bruto_str)
         except ValueError:
@@ -320,26 +293,11 @@ class PesajesView(ctk.CTkFrame):
 
         ahora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        # Se agrega 'fechacarga' al INSERT
         query = """INSERT INTO pesajes 
-        (fecha, chasis, chofer, pesoentrada, pesosalida, pesofinal, comprobante, Producto, Transporte, origen, idorigen, idproveedor, usualta, falta, anulado, fechacarga) 
-        VALUES (%s, %s, %s, %s, 0, 0, %s, %s, %s, %s, %s, %s, %s, %s, 0, %s)"""
+        (fecha, chasis, chofer, pesoentrada, pesosalida, pesofinal, comprobante, Producto, Transporte, origen, idorigen, idproveedor, usualta, falta, anulado) 
+        VALUES (%s, %s, %s, %s, 0, 0, %s, %s, %s, %s, %s, %s, %s, %s, 0)"""
         
-        params = (
-            ahora, 
-            patente, 
-            chofer if chofer else None, 
-            peso_ent, 
-            remito if remito else None, 
-            texto_producto, 
-            transp if transp else None, 
-            texto_origen, 
-            id_origen, 
-            id_prov, 
-            self.current_user_id, 
-            ahora,
-            fechacarga_sql
-        )
+        params = (ahora, patente, chofer if chofer else None, peso_ent, remito if remito else None, texto_producto, transp if transp else None, texto_origen, id_origen, id_prov, self.current_user_id, ahora)
         
         try:
             self.db.execute_non_query(query, params)
@@ -386,6 +344,8 @@ class PesajesView(ctk.CTkFrame):
             self.db.execute_non_query(query, (peso_sal, neto, destino if destino else None, observacion if observacion else None, self.current_user_id, ahora, id_registro))
             
             # --- OBTENER INFORMACIÓN DE REMITO Y PRODUCTO DE ESTE TICKET ---
+            # Hacemos un SELECT rápido para traer los datos faltantes (Producto, Remito/Comprobante, Transporte, Origen)
+            # que guardamos en la primera pesada para que salgan completos en el PDF impreso.
             datos_db = self.db.execute_query(
                 "SELECT comprobante, Producto, Transporte, origen FROM pesajes WHERE idregistro = %s", 
                 (id_registro,)
@@ -466,7 +426,8 @@ class PesajesView(ctk.CTkFrame):
             self._cargar_historial_db()
 
     def _leer_puerto_balanza(self, nro_captura):
-        """Intenta conectarse a la balanza física por puerto serie y capturar el peso real."""
+        """Intenta conectarse a la balanza física por puerto serie y capturar el peso real.
+        Si falla o no puede establecer conexión, muestra una alerta y no altera los campos."""
         puerto, velocidad = self._obtener_parametros_balanza()
         print(f"Intentando conectar al puerto: {puerto} a {velocidad} bps...")
         
@@ -486,12 +447,13 @@ class PesajesView(ctk.CTkFrame):
         ser = None
         try:
             # 2. Intentamos abrir el puerto serie con un timeout de 2 segundos
+            # para evitar que la interfaz gráfica (Tkinter) se congele si la balanza no responde.
             ser = serial.Serial(port=puerto, baudrate=velocidad, timeout=2)
             
-            # Limpiamos los buffers de entrada viejos
+            # Limpiamos los buffers de entrada viejos para asegurar una lectura instantánea y real
             ser.reset_input_buffer()
             
-            # 3. Leemos una línea completa enviada por la balanza
+            # 3. Leemos una línea completa enviada por la balanza (espera hasta el salto de línea \n)
             datos_bytes = ser.readline()
             
             if not datos_bytes:
@@ -500,10 +462,12 @@ class PesajesView(ctk.CTkFrame):
                     "Verifique que la balanza esté encendida, transmitiendo datos y que el cable esté bien conectado."
                 )
             
+            # Decodificamos los bytes recibidos evitando caracteres corruptos
             lectura = datos_bytes.decode('utf-8', errors='ignore').strip()
             print(f"Datos crudos de balanza: '{lectura}'")
             
-            # 4. Filtramos la lectura
+            # 4. Filtramos la lectura con una expresión regular para extraer solo la parte numérica.
+            # Esto es vital porque las balanzas suelen enviar tramas tipo '+ 12450 kg' o 'ST,GS,  12450'
             import re
             numeros = re.findall(r'\d+', lectura)
             
@@ -513,9 +477,10 @@ class PesajesView(ctk.CTkFrame):
                     f"Recibido crudo: '{lectura}'"
                 )
             
+            # Tomamos la cadena numérica más larga encontrada (que corresponderá al peso)
             peso_detectado = int(max(numeros, key=len))
             
-            # 5. Insertamos el peso real
+            # 5. Insertamos el peso real en el cuadro de texto correspondiente
             if nro_captura == 1:
                 self.ent_peso_entrada.delete(0, "end")
                 self.ent_peso_entrada.insert(0, str(peso_detectado))
@@ -524,6 +489,7 @@ class PesajesView(ctk.CTkFrame):
                 self.ent_peso_salida.insert(0, str(peso_detectado))
                 
         except serial.SerialException as se:
+            # Error específico del puerto serie (puerto inexistente, ocupado por otro programa como putty, etc.)
             messagebox.showerror(
                 "Error de Conexión", 
                 f"No se pudo acceder al puerto {puerto}.\n\n"
@@ -535,12 +501,15 @@ class PesajesView(ctk.CTkFrame):
                 parent=self
             )
         except Exception as e:
+            # Cualquier otro tipo de error (timeout, decodificación, etc.)
             messagebox.showerror(
                 "Error de Lectura", 
                 f"Ocurrió un problema al intentar pesar:\n\n{str(e)}",
                 parent=self
             )
         finally:
+            # 6. Nos aseguramos de cerrar SIEMPRE el puerto serie si quedó abierto,
+            # previniendo que el puerto quede bloqueado para futuras capturas.
             if ser and ser.is_open:
                 ser.close()
                 print("Puerto serie cerrado correctamente.")
@@ -577,12 +546,14 @@ class PesajesView(ctk.CTkFrame):
         frame_puerto = ctk.CTkFrame(self.ventana_config, fg_color="transparent")
         frame_puerto.pack(padx=30, pady=(2, 10), fill="x")
         
+        # ComboBox editable para el puerto COM
         self.cb_puerto = ctk.CTkComboBox(frame_puerto, values=[puerto_actual, "COM1", "COM2", "COM3", "COM4"], width=180)
         self.cb_puerto.pack(side="left", padx=(0, 10))
         self.cb_puerto.set(puerto_actual)
         
         def escanear_puertos():
             try:
+                # Intento de importación dinámica defensiva
                 import serial.tools.list_ports
                 puertos_encontrados = serial.tools.list_ports.comports()
                 lista_coms = [p.device for p in puertos_encontrados]
@@ -594,6 +565,7 @@ class PesajesView(ctk.CTkFrame):
                 else:
                     messagebox.showwarning("Escaneo", "No se detectó ningún dispositivo serial físico conectado. Podés escribirlo de forma manual.", parent=self.ventana_config)
             except ImportError:
+                # Si pyserial no está en este entorno, guiamos al usuario sin romper nada
                 messagebox.showinfo(
                     "Aviso de Entorno", 
                     "La detección automática requiere 'pyserial'.\n\nNo te preocupes: podés escribir el puerto directamente a mano (Ej: COM3) en el recuadro y guardará igual.", 
@@ -699,16 +671,12 @@ class PesajesView(ctk.CTkFrame):
         self.ent_peso_entrada.delete(0, "end")
         self.ent_comprobante.delete(0, "end")
         self.ent_transporte.delete(0, "end")
-        
-        # Limpiar y restablecer la fecha de carga a la hora actual
-        self.ent_fecha_carga.delete(0, "end")
-        self.ent_fecha_carga.insert(0, datetime.now().strftime("%d-%m-%Y %H:%M"))
-        
         # Restablecemos el combobox de producto a la primera opción
         opciones = self._obtener_lista_productos_activos()
         self.cb_producto.configure(values=opciones)
         if opciones:
             self.cb_producto.set(opciones[0])
+            
             
     def _reimprimir_ticket_cerrado(self):
         # 1. Obtener la fila seleccionada de la grilla de historial
