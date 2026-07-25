@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Movimientos de Insumos - Manual FlowTrack</title>
+    <link rel="stylesheet" href="../estile.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <header>
+        <h1>Módulo: Movimientos e Inventario de Insumos</h1>
+        <p>Control operativo de entradas, salidas y existencias de stock</p>
+    </header>
+
+    <div class="container">
+        <a href="../index.html" class="btn-volver">← Volver al Índice</a>
+
+        <h2>1. Descripción General</h2>
+        <p>Este módulo registra todas las operaciones que afectan el stock físico de insumos en planta. Permite imputar egresos a vehículos específicos, auditar el saldo actual de cada material y detectar situaciones críticas de escasez.</p>
+
+        <h2>2. Registrar Ingreso / Egreso de Stock</h2>
+        <ol>
+            <li>Seleccione el <strong>Insumo</strong> del desplegable correspondiente.</li>
+            <li>Indique el <strong>Tipo de Movimiento</strong>:
+                <ul>
+                    <li><strong>INGRESO:</strong> Incrementa las existencias en stock (Ej: Compra o devolución).</li>
+                    <li><strong>EGRESO:</strong> Descuenta stock (Ej: Entrega para consumo o reparación).</li>
+                </ul>
+            </li>
+            <li>Ingrese la <strong>Cantidad</strong> numérica a mover.</li>
+            <li>(Opcional) Asigne un <strong>Vehículo</strong> si el material se destina al mantenimiento de una unidad específica.</li>
+            <li>Añada una <strong>Observación / Detalle</strong> descriptivo si corresponde.</li>
+            <li>Haga clic en <strong>"REGISTRAR MOVIMIENTO"</strong> para confirmar.</li>
+        </ol>
+
+        <h2>3. Consulta de Saldos y Auditoría</h2>
+        <p>En el panel derecho se visualiza la grilla con el inventario consolidado en tiempo real. Cada insumo refleja su saldo actual calculando automaticamente la suma de ingresos menos egresos.</p>
+
+        <div class="alerta-critica">
+            <strong>⚠️ ALERTAS VISUALES DE STOCK CRÍTICO:</strong><br>
+            Las filas resaltadas en color amarillo o rojo en la grilla indican que el saldo actual ha alcanzado o está por debajo del <strong>Punto Crítico</strong> configurado en el catálogo maestro. Reabastezca a la brevedad.
+        </div>
+    </div>
+</body>
+</html>

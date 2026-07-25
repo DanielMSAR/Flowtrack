@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Sistema de Balanza - Manual FlowTrack</title>
+    <link rel="stylesheet" href="../estile.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <header>
+        <h1>Módulo: Sistema de Balanza y Pesajes</h1>
+        <p>Control de pesajes de camiones, pesajes brutos, taras y tickets en PDF</p>
+    </header>
+
+    <div class="container">
+        <a href="../index.html" class="btn-volver">← Volver al Índice</a>
+
+        <h2>1. Descripción General</h2>
+        <p>Este módulo gestiona la balanza de pesaje de transporte pesado de la planta. Permite registrar las dos etapas del pesaje (Entrada/Bruto y Salida/Tara), calcular automáticamente el Peso Neto y generar comprobantes impresos o en formato PDF.</p>
+
+        <h2>2. Procedimiento de Pesaje (Doble Entrada / Salida)</h2>
+        <ol>
+            <li><strong>Pesaje de Entrada (Bruto):</strong>
+                <ul>
+                    <li>Seleccione o busque el <strong>Vehículo / Chasis / Acoplado</strong> por patente.</li>
+                    <li>Seleccione el <strong>Cliente / Proveedor</strong> y el <strong>Producto / Lote</strong> transportado.</li>
+                    <li>Capture o ingrese manualmente el <strong>Peso Bruto (kg)</strong>.</li>
+                    <li>Guarde el pesaje pendiente. Quedará en estado <em>"Pendiente de Tara"</em>.</li>
+                </ul>
+            </li>
+            <li><strong>Pesaje de Salida (Tara):</strong>
+                <ul>
+                    <li>Busque la patente en la lista de pesajes pendientes.</li>
+                    <li>Ingrese el <strong>Peso Tara (kg)</strong> al momento de la salida.</li>
+                    <li>El sistema calculará automáticamente: <code>Peso Neto = Bruto - Tara</code>.</li>
+                    <li>Presione <strong>"FINALIZAR PESAJES Y EMITIR TICKET"</strong>.</li>
+                </ul>
+            </li>
+        </ol>
+
+        <h2>3. Impresión y Reimpresión de Comprobantes</h2>
+        <p>Al confirmar el pesaje neto, se generará un archivo PDF con la matriz oficial del ticket de balanza (con código de seguimiento, firmas, chofer y detalles). Para reimprimir un ticket antiguo, seleccione el registro en la grilla histórica y presione <strong>"REIMPRIMIR TICKET"</strong>.</p>
+
+        <div class="alerta-critica">
+            <strong>⚠️ CONTROLES DE SEGURIDAD EN BALANZA:</strong><br>
+            Verifique que los valores de Bruto sean siempre mayores a la Tara antes de cerrar la operación. El sistema impedirá guardar netos negativos.
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestión de Lotes - Manual FlowTrack</title>
+    <link rel="stylesheet" href="../estile.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <header>
+        <h1>Módulo: Gestión de Lotes</h1>
+        <p>Administración y trazabilidad de lotes de producción y recepción</p>
+    </header>
+
+    <div class="container">
+        <a href="../index.html" class="btn-volver">← Volver al Índice</a>
+
+        <h2>1. Descripción General</h2>
+        <p>El módulo de Lotes es la unidad central para el seguimiento de la materia prima recibida y procesada en planta. Permite asociar cada lote a una chacra de origen, controlar kilos acumulados y dar seguimiento a las etapas del proceso.</p>
+
+        <h2>2. Alta de un Nuevo Lote</h2>
+        <ol>
+            <li>Complete la <strong>Identificación / Código de Lote</strong>.</li>
+            <li>Seleccione la <strong>Chacra</strong> o Parcela de procedencia.</li>
+            <li>Indique la <strong>Fecha de Apertura</strong> del lote.</li>
+            <li>Establezca el <strong>Estado Inicial</strong> (Abierto / En Proceso).</li>
+            <li>Presione <strong>"GUARDAR LOTE"</strong> para registrarlo.</li>
+        </ol>
+
+        <h2>3. Seguimiento y Cierre de Lote</h2>
+        <p>A medida que ingresan pesajes de balanza asociados al lote, los totales en kilos se actualizarán dinámicamente. Al finalizar la cosecha o proceso correspondiente a esa partida, puede cambiar el estado a <strong>"CERRADO"</strong> para congelar los balances.</p>
+
+        <div class="alerta-critica">
+            <strong>⚠️ NOTA DE TRAZABILIDAD:</strong><br>
+            Los lotes cerrados no admiten la asignación de nuevos pesajes de balanza salvo reapertura por parte de un usuario administrador.
+        </div>
+    </div>
+</body>
+</html>
