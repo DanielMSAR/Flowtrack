@@ -54,7 +54,12 @@ class ProductosView(ctk.CTkFrame):
         # Campo: Nombre del Producto
         ctk.CTkLabel(self.frame_form, text="Nombre del Producto *", text_color="black", font=("Arial", 12, "bold")).pack(padx=15, anchor="w")
         self.ent_producto = ctk.CTkEntry(self.frame_form, width=280, placeholder_text="Ej: Yerba Mate Canchada")
-        self.ent_producto.pack(padx=15, pady=(2, 20))
+        self.ent_producto.pack(padx=15, pady=(2, 10))
+
+        # Campo: Precio ($)
+        ctk.CTkLabel(self.frame_form, text="Precio ($)", text_color="black", font=("Arial", 12, "bold")).pack(padx=15, anchor="w")
+        self.ent_precio = ctk.CTkEntry(self.frame_form, width=280, placeholder_text="0.00")
+        self.ent_precio.pack(padx=15, pady=(2, 20))
 
         # Indicador de estado visual (solo lectura informativa)
         self.lbl_estado_actual = ctk.CTkLabel(self.frame_form, text="Estado: Nuevo Registro", font=("Arial", 11, "italic"), text_color="gray")
@@ -87,14 +92,16 @@ class ProductosView(ctk.CTkFrame):
         self.ent_buscar.bind("<KeyRelease>", self._filtrar_productos)
 
         # Grilla de Datos (Treeview)
-        self.tree = ttk.Treeview(frame_derecho, columns=("id", "producto", "estado"), show="headings", height=15)
+        self.tree = ttk.Treeview(frame_derecho, columns=("id", "producto", "precio", "estado"), show="headings", height=15)
         self.tree.heading("id", text="ID")
         self.tree.heading("producto", text="Producto")
+        self.tree.heading("precio", text="Precio ($)")
         self.tree.heading("estado", text="Estado")
         
-        self.tree.column("id", width=60, anchor="center")
-        self.tree.column("producto", width=250, anchor="w")
-        self.tree.column("estado", width=100, anchor="center")
+        self.tree.column("id", width=50, anchor="center")
+        self.tree.column("producto", width=220, anchor="w")
+        self.tree.column("precio", width=90, anchor="e")
+        self.tree.column("estado", width=80, anchor="center")
         self.tree.pack(fill="both", expand=True)
         
         self.tree.bind("<<TreeviewSelect>>", self._al_seleccionar_fila)
@@ -108,15 +115,17 @@ class ProductosView(ctk.CTkFrame):
             self.tree.delete(item)
 
         if filtro.strip():
-            query = "SELECT id, Producto, IF(activo=1, 'ACTIVO', 'INACTIVO') FROM productos WHERE Producto LIKE %s ORDER BY Producto ASC"
+            query = "SELECT id, Producto, COALESCE(precio, 0.0), IF(activo=1, 'ACTIVO', 'INACTIVO') FROM productos WHERE Producto LIKE %s ORDER BY Producto ASC"
             resultados = self.db.execute_query(query, (f"%{filtro.strip()}%",))
         else:
-            query = "SELECT id, Producto, IF(activo=1, 'ACTIVO', 'INACTIVO') FROM productos ORDER BY Producto ASC"
+            query = "SELECT id, Producto, COALESCE(precio, 0.0), IF(activo=1, 'ACTIVO', 'INACTIVO') FROM productos ORDER BY Producto ASC"
             resultados = self.db.execute_query(query)
 
         if resultados:
             for fila in resultados:
-                self.tree.insert("", "end", values=fila)
+                precio_val = fila[2] if fila[2] is not None else 0.0
+                precio_fmt = f"$ {precio_val:,.2f}"
+                self.tree.insert("", "end", values=(fila[0], fila[1], precio_fmt, fila[3]))
 
     def _filtrar_productos(self, event):
         """Dispara la consulta SQL a medida que el cliente escribe"""
@@ -131,11 +140,15 @@ class ProductosView(ctk.CTkFrame):
         valores = self.tree.item(seleccion[0])["values"]
         self.id_seleccionado = valores[0]
         nombre_prod = valores[1]
-        estado = valores[2]
+        precio_str = str(valores[2]).replace("$", "").replace(",", "").strip()
+        estado = valores[3]
 
         # Rellenar Entry
         self.ent_producto.delete(0, "end")
         self.ent_producto.insert(0, nombre_prod)
+
+        self.ent_precio.delete(0, "end")
+        self.ent_precio.insert(0, precio_str)
 
         # Configurar UI para Edición
         self.lbl_estado_actual.configure(text=f"Editando ID #{self.id_seleccionado} ({estado})", text_color="#1d3557")
@@ -149,21 +162,29 @@ class ProductosView(ctk.CTkFrame):
     def _guardar_producto(self):
         """Maneja de forma inteligente el INSERT (Nuevo) o el UPDATE (Existente)"""
         nombre = self.ent_producto.get().strip()
+        precio_raw = self.ent_precio.get().strip()
+
         if not nombre:
             messagebox.showwarning("Atención", "El nombre del producto es obligatorio.")
+            return
+
+        try:
+            precio = float(precio_raw) if precio_raw else 0.0
+        except ValueError:
+            messagebox.showerror("Error", "El precio debe ser un valor numérico válido.")
             return
 
         ahora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         if self.id_seleccionado is None:
             # --- NUEVO REGISTRO (INSERT) ---
-            query = "INSERT INTO productos (Producto, activo, usualta, falta) VALUES (%s, 1, %s, %s)"
-            params = (nombre, self.current_user_id, ahora)
+            query = "INSERT INTO productos (Producto, precio, activo, usualta, falta) VALUES (%s, %s, 1, %s, %s)"
+            params = (nombre, precio, self.current_user_id, ahora)
             msg_exito = f"Producto '{nombre}' creado con éxito."
         else:
             # --- EDICIÓN (UPDATE) ---
-            query = "UPDATE productos SET Producto = %s, usumodi = %s, fmodi = %s WHERE id = %s"
-            params = (nombre, self.current_user_id, ahora, self.id_seleccionado)
+            query = "UPDATE productos SET Producto = %s, precio = %s, usumodi = %s, fmodi = %s WHERE id = %s"
+            params = (nombre, precio, self.current_user_id, ahora, self.id_seleccionado)
             msg_exito = "Producto actualizado correctamente."
 
         try:
@@ -180,7 +201,7 @@ class ProductosView(ctk.CTkFrame):
             return
 
         seleccion = self.tree.selection()
-        estado_actual = self.tree.item(seleccion[0])["values"][2]
+        estado_actual = self.tree.item(seleccion[0])["values"][3]
         nuevo_estado = 0 if estado_actual == "ACTIVO" else 1
         accion_texto = "dar de BAJA" if nuevo_estado == 0 else "REACTIVAR"
 
@@ -203,6 +224,7 @@ class ProductosView(ctk.CTkFrame):
         """Reinicia los controles para una nueva carga limpia"""
         self.id_seleccionado = None
         self.ent_producto.delete(0, "end")
+        self.ent_precio.delete(0, "end")
         self.lbl_estado_actual.configure(text="Estado: Nuevo Registro", text_color="gray")
         self.btn_cambiar_estado.configure(state="disabled", text="DAR DE BAJA", fg_color="#4a5568")
-        self.tree.selection_remove(self.tree.selection())
+        self.tree.selection_remove(self.tree.selection())

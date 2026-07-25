@@ -16,3 +16,7 @@ error_log.txt
 # Editor / IDE configuration
 .vscode/
 .idea/
+
+# Backups
+backups/
+
