@@ -277,7 +277,8 @@ class MainView:
         elif nombre_modulo == "Sistema Balanza":
             from pesajes_view import PesajesView
             self.vista_pesajes = PesajesView(self.content_frame, self.db)
-            
+        elif nombre_modulo == "Productos":
+            self.vista_productos = ProductosView(self.content_frame, self.db)    
         elif nombre_modulo == "Mov. Combustibles":
             # Levantamos el nuevo módulo inyectando el contenedor central y la conexión a la Base de Datos
             self.vista_mov_combustibles = MovCombustiblesView(self.content_frame, self.db)

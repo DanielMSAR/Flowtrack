@@ -32,13 +32,21 @@ ARCHIVOS_SISTEMA = [
     "main_view.py",
     "login_view.py",
     "database.py",
+    "config.py",
     "insumos_view.py",
     "movinsumos_view.py",
     "lotes_view.py",
     "chacras_view.py",
     "loteagrario_view.py",
     "vehiculos_view.py",
-    "combustibles_view.py"
+    "combustibles_view.py",
+    "movcombustibles_view.py",
+    "pesajes_view.py",
+    "productos_view.py",
+    "proveedores_view.py",
+    "clientes_view.py",
+    "varios_view.py",
+    "ticket_generator.py"
 ]
 
 def verificar_actualizaciones_al_inicio():

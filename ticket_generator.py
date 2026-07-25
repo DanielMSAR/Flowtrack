@@ -53,15 +53,26 @@ def obtener_nombre_empresa():
     return nombre_defecto
 
 def generar_ticket_pdf(datos_ticket, filename="ticket_balanza.pdf"):
+    # --- MODIFICACIÓN AQUÍ: Redirección a carpeta impresiones ---
+    ruta_script = os.path.dirname(os.path.abspath(__file__))
+    carpeta_impresiones = os.path.join(ruta_script, "impresiones")
+    
+    # Creamos la carpeta si aún no existe
+    os.makedirs(carpeta_impresiones, exist_ok=True)
+    
+    # Si filename es solo un nombre de archivo, lo unimos con la carpeta 'impresiones'
+    if not os.path.isabs(filename) and not os.path.dirname(filename):
+        filepath = os.path.join(carpeta_impresiones, filename)
+    else:
+        filepath = filename
+
     # Dimensiones de A4 en vertical: 210mm de ancho x 297mm de alto
     ancho, alto = A4 
-    c = canvas.Canvas(filename, pagesize=A4)
+    c = canvas.Canvas(filepath, pagesize=A4)
     
     nombre_empresa = obtener_nombre_empresa()
     
     # Ruta al archivo de imagen del logo
-    # Buscamos en la carpeta "imagenes" dentro del mismo directorio del script
-    ruta_script = os.path.dirname(os.path.abspath(__file__))
     ruta_logo = os.path.join(ruta_script, "imagenes", "logo.png")
     
     def dibujar_ticket(y_offset, tipo_copia):
@@ -73,15 +84,11 @@ def generar_ticket_pdf(datos_ticket, filename="ticket_balanza.pdf"):
         # ----------------- SELLO DE AGUA (LOGO EN EL FONDO) -----------------
         if os.path.exists(ruta_logo):
             c.saveState()
-            # Definimos una transparencia del 8% para que sea muy sutil y no entorpezca la lectura
             c.setFillAlpha(0.30)  
             
-            # Dimensiones deseadas para el logo dentro del ticket: 60mm x 60mm
             ancho_logo = 60 * mm
             alto_logo = 60 * mm
             
-            # Calculamos las coordenadas para centrarlo horizontal y verticalmente en el ticket
-            # El ticket mide 190mm de ancho y 125mm de alto. Empieza en X = 10mm
             x_logo = 10 * mm + (190 * mm - ancho_logo) / 2
             y_logo = y_offset + (125 * mm - alto_logo) / 2
             
@@ -90,7 +97,7 @@ def generar_ticket_pdf(datos_ticket, filename="ticket_balanza.pdf"):
             except Exception as e:
                 registrar_error_en_archivo("Dibujando marca de agua (logo)", e)
                 
-            c.restoreState() # Restauramos el estado de opacidad al 100% para el resto del diseño
+            c.restoreState()
 
         # ----------------- ENCABEZADO ESTILO TICKETERA -----------------
         c.setFillColor(colors.HexColor("#1a202c"))
@@ -118,7 +125,6 @@ def generar_ticket_pdf(datos_ticket, filename="ticket_balanza.pdf"):
         c.setFont("Helvetica", 10)
         c.drawString(142 * mm, y_offset + 102 * mm, str(datos_ticket.get('fecha', '')))
         
-        # Línea divisoria sutil
         c.setStrokeColor(colors.HexColor("#a0aec0"))
         c.setLineWidth(0.5)
         c.line(15 * mm, y_offset + 97 * mm, 195 * mm, y_offset + 97 * mm)
@@ -229,9 +235,23 @@ def generar_ticket_pdf(datos_ticket, filename="ticket_balanza.pdf"):
     
     c.showPage()
     c.save()
+    
+    return filepath
 
 def abrir_e_imprimir_pdf(filename="ticket_balanza.pdf"):
-    filepath = os.path.abspath(filename)
+    ruta_script = os.path.dirname(os.path.abspath(__file__))
+    carpeta_impresiones = os.path.join(ruta_script, "impresiones")
+    
+    # Buscamos primero en impresiones/ y si no está ahí, intentamos con la ruta relativa
+    if not os.path.isabs(filename):
+        posible_ruta_impresiones = os.path.join(carpeta_impresiones, filename)
+        if os.path.exists(posible_ruta_impresiones):
+            filepath = posible_ruta_impresiones
+        else:
+            filepath = os.path.abspath(filename)
+    else:
+        filepath = filename
+
     sistema = platform.system()
     try:
         if sistema == "Windows":

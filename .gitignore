@@ -1,0 +1,18 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# PyInstaller / Executables
+*.exe
+build/
+dist/
+
+# PDF Prints and Logs
+impresiones/*.pdf
+ticket_balanza_*.pdf
+error_log.txt
+
+# Editor / IDE configuration
+.vscode/
+.idea/
