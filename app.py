@@ -22,7 +22,7 @@ except Exception:
 # =====================================================================
 # CONFIGURACIÓN DE ACTUALIZACIÓN AUTOMÁTICA (GITHUB PÚBLICO)
 # =====================================================================
-VERSION_LOCAL = "0.1.5"  # <-- Cambiá esto a mano en tu código cada vez que lances una versión
+VERSION_LOCAL = "0.1.6"  # <-- Cambiá esto a mano en tu código cada vez que lances una versión
 USER_GIT = "DanielMSAR"      # <-- Colocá tu usuario real de GitHub
 REPO_GIT = "Flowtrack"  # <-- Colocá el nombre exacto de tu repo
 

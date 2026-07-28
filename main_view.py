@@ -13,6 +13,7 @@ from proveedores_view import ProveedoresView
 from clientes_view import ClientesView
 from productos_view import ProductosView
 from varios_view import VariosView
+from ctacteclientes_view import CtaCteClientesView
 from PIL import Image
 import os
 import webbrowser
@@ -104,7 +105,8 @@ class MainView:
             {"texto": "Sistema Balanza", "icono": "balanza.png"},
             {"texto": "Mov. Combustibles", "icono": "combustible.png"},
             {"texto": "Mov. Insumos", "icono": "insumo.png"},
-            {"texto": "Cuentas Corrientes", "icono": "usuario.png"}
+            {"texto": "Cta. Cte. Prov.", "icono": "usuario.png"},
+            {"texto": "Cta. Cte. Clientes", "icono": "usuario.png"}
         ]
         
         for opc in opciones_mov:
@@ -286,10 +288,12 @@ class MainView:
             self.vista_proveedores = ProveedoresView(self.content_frame, self.db)
         elif nombre_modulo == "Clientes":  
             self.vista_clientes = ClientesView(self.content_frame, self.db)
-        elif nombre_modulo == "Cuentas Corrientes":  # <-- AGREGAR ESTE BLOQUE AQUÍ
+        elif nombre_modulo == "Cta. Cte. Clientes":
+         self.vista_ctacte_clientes = CtaCteClientesView(self.content_frame, self.db)
+        elif nombre_modulo in ("Cta. Cte. Prov.", "Cta. Cte."):
             self.welcome_label = ctk.CTkLabel(
                 self.content_frame, 
-                text="Módulo: CUENTAS CORRIENTES\n(Próximamente en desarrollo)", 
+                text=f"Módulo: {nombre_modulo}\n(Próximamente en desarrollo)", 
                 text_color="gray", 
                 font=("Arial", 24)
             )
