@@ -46,3 +46,13 @@ class Database:
                 conn.commit()
                 return cursor.rowcount
         return -1
+
+    def execute_insert_get_id(self, query, params=None):
+        """Ejecuta una consulta INSERT y devuelve el ID autoincremental generado"""
+        conn = self.get_connection()
+        if conn:
+            with conn.cursor() as cursor:
+                cursor.execute(query, params)
+                conn.commit()
+                return cursor.lastrowid
+        return None

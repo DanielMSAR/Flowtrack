@@ -1,3 +1,4 @@
+# lotes_view.py
 import customtkinter as ctk
 from tkinter import ttk, messagebox
 from datetime import datetime
@@ -62,6 +63,7 @@ class LotesView(ctk.CTkFrame):
 
         self.tree.bind("<<TreeviewSelect>>", self._on_lote_seleccionado)
 
+
         # Sub-Contenedor DERECHO: Detalle de Pesajes (Ancho estático de 380px)
         frame_detalle = ctk.CTkFrame(self.tabla_frame, width=380, fg_color="#f5f5f5", corner_radius=8, border_width=1, border_color="#dbdbdb")
         frame_detalle.grid(row=0, column=1, sticky="nsew")
@@ -124,7 +126,7 @@ class LotesView(ctk.CTkFrame):
     def _setear_tiempos_actuales(self):
         ahora = datetime.now()
         fecha_hoy_ar = ahora.strftime('%d-%m-%Y')
-        hora_actual = ahora.strftime('%H')
+        hora_actual = stopwatch_hour = ahora.strftime('%H')
         minuto_actual = ahora.strftime('%M')
 
         self.ent_fecha_ingreso.delete(0, "end")
@@ -136,6 +138,11 @@ class LotesView(ctk.CTkFrame):
         self.ent_fecha_proc.insert(0, fecha_hoy_ar)
         self.cmb_hora_proc.set(hora_actual)
         self.cmb_min_proc.set(minuto_actual)
+        
+        self.ent_fecha_env.delete(0, "end")
+        self.ent_fecha_env.insert(0, fecha_hoy_ar)
+        self.cmb_hora_env.set(hora_actual)
+        self.cmb_min_env.set(minuto_actual)
 
     def _convertir_a_sql(self, fecha_ar, hora, minuto):
         try:
@@ -186,9 +193,11 @@ class LotesView(ctk.CTkFrame):
         self.cmb_min_ingreso = ctk.CTkComboBox(frame_time, values=self.minutos_validas, width=65, state="readonly")
         self.cmb_min_ingreso.pack(side="left", padx=2)
 
+        # --- BOTONERA DE CONTROL DE LOTE ---
         frame_acciones = ctk.CTkFrame(self.tab_ingreso, fg_color="transparent")
         frame_acciones.grid(row=1, column=0, columnspan=5, pady=(15, 5), padx=20, sticky="ew")
 
+        # Configurar columnas del frame para distribución pareja de los 3 botones
         frame_acciones.columnconfigure(0, weight=1)
         frame_acciones.columnconfigure(1, weight=1)
         frame_acciones.columnconfigure(2, weight=1)
@@ -196,6 +205,7 @@ class LotesView(ctk.CTkFrame):
         self.btn_guardar_lote = ctk.CTkButton(frame_acciones, text="CREAR LOTE", font=("Arial", 14, "bold"), height=38, command=self._guardar_nuevo_lote)
         self.btn_guardar_lote.grid(row=0, column=0, padx=5, sticky="ew")
 
+        # MODIFICADO: Botón Eliminar Lote integrado (columna central)
         self.btn_eliminar_lote = ctk.CTkButton(frame_acciones, text="🗑️ ELIMINAR LOTE", fg_color="#d9534f", hover_color="#c9302c", font=("Arial", 14, "bold"), height=38, command=self._eliminar_lote)
         self.btn_eliminar_lote.grid(row=0, column=1, padx=5, sticky="ew")
 
@@ -239,7 +249,60 @@ class LotesView(ctk.CTkFrame):
         self.btn_guardar_proc = ctk.CTkButton(self.tab_procesado, text="REGISTRAR PROCESAMIENTO", fg_color="#4d5433", hover_color="#393e26", font=("Arial", 14, "bold"), height=40, command=self._guardar_procesado)
         self.btn_guardar_proc.grid(row=2, column=0, columnspan=5, pady=20, padx=20, sticky="ew")
 
+    def _crear_formulario_envasado(self):
+        # 1. Kilogramos Envasados
+        lbl_kgs_e = ctk.CTkLabel(self.tab_envasado, text="Kgs Envasados:", font=("Arial", 14, "bold"))
+        lbl_kgs_e.grid(row=0, column=0, padx=20, pady=10, sticky="w")
+        self.ent_kgs_env = ctk.CTkEntry(self.tab_envasado, width=130, font=("Arial", 14))
+        self.ent_kgs_env.grid(row=0, column=1, padx=10, pady=10, sticky="w")
+
+        # 2. Tipo de Envase
+        lbl_envase = ctk.CTkLabel(self.tab_envasado, text="Tipo Envase:", font=("Arial", 14, "bold"))
+        lbl_envase.grid(row=0, column=2, padx=20, pady=10, sticky="w")
+        self.cmb_envase = ctk.CTkComboBox(self.tab_envasado, values=[], width=170, state="readonly")
+        self.cmb_envase.grid(row=0, column=3, padx=10, pady=10, sticky="w")
+
+        # 3. Cantidad de Envases (campo cantenvases)
+        lbl_cant_env = ctk.CTkLabel(self.tab_envasado, text="Cant. Envases:", font=("Arial", 14, "bold"))
+        lbl_cant_env.grid(row=0, column=4, padx=20, pady=10, sticky="w")
+        self.ent_cant_env = ctk.CTkEntry(self.tab_envasado, width=100, font=("Arial", 14))
+        self.ent_cant_env.grid(row=0, column=5, padx=10, pady=10, sticky="w")
+
+        # 4. Operario Envasado
+        lbl_ope_e = ctk.CTkLabel(self.tab_envasado, text="Operario Env.:", font=("Arial", 14, "bold"))
+        lbl_ope_e.grid(row=1, column=0, padx=20, pady=10, sticky="w")
+        self.cmb_operario_env = ctk.CTkComboBox(self.tab_envasado, values=["101 - Juan Perez", "103 - Carlos Gomez"], width=180)
+        self.cmb_operario_env.grid(row=1, column=1, padx=10, pady=10, sticky="w")
+
+        # 5. Selector de Fecha/Hora
+        frame_time_e = ctk.CTkFrame(self.tab_envasado, fg_color="transparent")
+        frame_time_e.grid(row=1, column=2, columnspan=2, padx=10, pady=10, sticky="w")
+
+        ctk.CTkLabel(frame_time_e, text="Fecha:", font=("Arial", 13, "bold")).pack(side="left", padx=2)
+        self.ent_fecha_env = ctk.CTkEntry(frame_time_e, width=105, font=("Arial", 13), placeholder_text="DD-MM-YYYY")
+        self.ent_fecha_env.pack(side="left", padx=5)
+
+        ctk.CTkLabel(frame_time_e, text="Hora:", font=("Arial", 13, "bold")).pack(side="left", padx=(8, 2))
+        self.cmb_hora_env = ctk.CTkComboBox(frame_time_e, values=self.horas_validas, width=65, state="readonly")
+        self.cmb_hora_env.pack(side="left", padx=2)
+
+        ctk.CTkLabel(frame_time_e, text="Min:", font=("Arial", 13, "bold")).pack(side="left", padx=(5, 2))
+        self.cmb_min_env = ctk.CTkComboBox(frame_time_e, values=self.minutos_validas, width=65, state="readonly")
+        self.cmb_min_env.pack(side="left", padx=2)
+
+        # 6. Checkbox de Completado
+        self.chk_envasado = ctk.CTkCheckBox(self.tab_envasado, text="ENVASADO COMPLETADO", font=("Arial", 14, "bold"))
+        self.chk_envasado.grid(row=1, column=4, columnspan=2, padx=20, pady=10, sticky="w")
+
+        # 7. Botón Registrar Envasado
+        self.btn_guardar_env = ctk.CTkButton(self.tab_envasado, text="REGISTRAR ENVASADO", fg_color="#4d5433", hover_color="#393e26", font=("Arial", 14, "bold"), height=40, command=self._guardar_envasado)
+        self.btn_guardar_env.grid(row=2, column=0, columnspan=6, pady=15, padx=20, sticky="ew")
+
+    # =================================================================
+    # MÉTODOS PARA MANEJO DE ENVASES DINÁMICOS (BD)
+    # =================================================================
     def _cargar_combo_envases(self):
+        """Consulta los envases registrados en la BD y llena el ComboBox"""
         self.lista_envases = []
         try:
             query = "SELECT idenvase, envase, capacidad FROM envases ORDER BY envase ASC"
@@ -265,6 +328,7 @@ class LotesView(ctk.CTkFrame):
         for item in self.tree.get_children():
             self.tree.delete(item)
             
+        # MODIFICADO: Se añade la condición 'WHERE lotes.activo = 1'
         query = """
             SELECT lotes.id, lotes.fechainicio, lotes.lote, lotes.kgsingreso, 
                    lotes.procesado, lotes.kgsprocesado, lotes.envasado, lotes.kgsenv,
@@ -312,6 +376,7 @@ class LotesView(ctk.CTkFrame):
             
         id_lote = self.tree.item(seleccion[0])["values"][0]
         
+        # MODIFICADO: Se añade 'AND activo = 1' como medida preventiva de consistencia
         query = """SELECT lote, kgsingreso, kgsprocesado, idcalidad, operarioproc, procesado, 
                         kgsenv, idenvase, operarioenv, envasado, idorigen, fechainicio, fechaprocesado, fechaenv,
                         cantenvases
@@ -325,10 +390,14 @@ class LotesView(ctk.CTkFrame):
             lote = lote if lote is not None else ""
             kgs_in = kgs_in if kgs_in is not None else "0"
             kgs_pr = kgs_pr if kgs_pr is not None else ""
-
+            kgs_en = kgs_en if kgs_en is not None else ""
+            cant_envases = cant_envases if cant_envases is not None else ""
+            
             ahora = datetime.now()
+            
             f_in_dt = f_inicio if isinstance(f_inicio, datetime) else ahora
             f_pr_dt = f_proc if isinstance(f_proc, datetime) else ahora
+            f_ev_dt = f_env if isinstance(f_env, datetime) else ahora
 
             self.ent_lote.delete(0, "end")
             self.ent_lote.insert(0, str(lote))
@@ -353,9 +422,38 @@ class LotesView(ctk.CTkFrame):
             
             if proc == 1: self.chk_procesado.select()
             else: self.chk_procesado.deselect()
+            
+            self.ent_kgs_env.delete(0, "end")
+            self.ent_kgs_env.insert(0, str(kgs_en))
+
+            self.ent_cant_env.delete(0, "end")
+            self.ent_cant_env.insert(0, str(cant_envases))
+            
+            self.ent_fecha_env.delete(0, "end")
+            self.ent_fecha_env.insert(0, f_ev_dt.strftime('%d-%m-%Y'))
+            self.cmb_hora_env.set(f_ev_dt.strftime('%H'))
+            self.cmb_min_env.set(f_ev_dt.strftime('%M'))
+            
+            if env == 1: self.chk_envasado.select()
+            else: self.chk_envasado.deselect()
+
+            # Seteo del tipo de envase guardado en el combo
+            if id_en:
+                encontrado = False
+                for id_env, nombre, cap in self.lista_envases:
+                    if id_env == id_en:
+                        self.cmb_envase.set(f"{id_env} - {nombre} ({cap} kg)")
+                        encontrado = True
+                        break
+                if not encontrado:
+                    self.cmb_envase.set("")
+            else:
+                if self.lista_envases:
+                    self.cmb_envase.set(f"{self.lista_envases[0][0]} - {self.lista_envases[0][1]} ({self.lista_envases[0][2]} kg)")
+                else:
+                    self.cmb_envase.set("")
 
         self._cargar_detalle_lote(id_lote)
-        self._cargar_bolsones_lote(id_lote)
 
     def _on_tab_change(self):
         seleccion = self.tree.selection()
@@ -381,6 +479,7 @@ class LotesView(ctk.CTkFrame):
             messagebox.showerror("Fecha Inválida", "La fecha ingresada no corresponde a un calendario válido.\nUse el formato: DD-MM-YYYY")
             return
 
+        # MODIFICADO: Solo se verifica duplicado entre lotes que sigan activos
         query_verificar = "SELECT id FROM lotes WHERE lote = %s AND activo = 1"
         if self.db.execute_query(query_verificar, (lote_cod,)):
             messagebox.showerror("Duplicado", f"El lote '{lote_cod}' ya se encuentra registrado y activo.")
@@ -401,8 +500,11 @@ class LotesView(ctk.CTkFrame):
             messagebox.showinfo("Éxito", f"Lote '{lote_cod}' dado de alta exitosamente.")
             
         except Exception as e:
-            messagebox.showerror("Error", f"No se pudo guardar el lote: {str(e)}")
+            messagebox.showerror("Error", f"No se pudo guardar el lote: {str(e)}")            
 
+    # =================================================================
+    # NUEVO: MÉTODO PARA ELIMINACIÓN LÓGICA (activo = 0)
+    # =================================================================
     def _eliminar_lote(self):
         seleccion = self.tree.selection()
         if not seleccion:
@@ -420,10 +522,14 @@ class LotesView(ctk.CTkFrame):
 
         if pregunta:
             try:
+                # 1. Actualizamos el estado lógico a inactivo en la base de datos
                 query_update = "UPDATE lotes SET activo = 0 WHERE id = %s"
                 self.db.execute_non_query(query_update, (id_lote,))
                 
+                # 2. Refrescamos la grilla para ocultarlo automáticamente
                 self.cargar_lotes_db()
+                
+                # 3. Limpiamos las cajas de texto de la interfaz
                 self.ent_lote.delete(0, "end")
                 
                 self.ent_kgs_ingreso.configure(state="normal")
@@ -431,8 +537,12 @@ class LotesView(ctk.CTkFrame):
                 self.ent_kgs_ingreso.configure(state="readonly")
                 
                 self.ent_kgs_proc.delete(0, "end")
+                self.ent_kgs_env.delete(0, "end")
+                self.ent_cant_env.delete(0, "end")
                 self.chk_procesado.deselect()
+                self.chk_envasado.deselect()
                 
+                # Limpiar el Treeview detalle asociado
                 for item in self.tree_detalle.get_children():
                     self.tree_detalle.delete(item)
 
@@ -468,6 +578,47 @@ class LotesView(ctk.CTkFrame):
         
         self.cargar_lotes_db()
         messagebox.showinfo("Éxito", "Etapa de procesamiento guardada correctamente.")
+
+    def _guardar_envasado(self):
+        seleccion = self.tree.selection()
+        if not seleccion: return
+            
+        id_lote = self.tree.item(seleccion[0])["values"][0]
+        kgs_env = self.ent_kgs_env.get()
+        cant_env = self.ent_cant_env.get().strip()
+        is_env = 1 if self.chk_envasado.get() == 1 else 0
+        
+        fecha_usr = self.ent_fecha_env.get().strip()
+        h_usr = self.cmb_hora_env.get()
+        m_usr = self.cmb_min_env.get()
+        
+        if not kgs_env.isdigit():
+            messagebox.showwarning("Datos Inválidos", "Ingrese un valor numérico para los kilogramos envasados.")
+            return
+
+        if not cant_env.isdigit():
+            messagebox.showwarning("Datos Inválidos", "Ingrese un valor numérico entero para la cantidad de envases.")
+            return
+
+        fecha_sql = self._convertir_a_sql(fecha_usr, h_usr, m_usr)
+        if not fecha_sql:
+            messagebox.showerror("Fecha Inválida", "Verifique que la fecha tenga el formato DD-MM-YYYY.")
+            return
+
+        # Obtener idenvase real a partir del combo
+        envase_sel = self.cmb_envase.get()
+        try:
+            id_envase = int(envase_sel.split(" - ")[0])
+        except (ValueError, IndexError):
+            messagebox.showerror("Envase Inválido", "Por favor, seleccione un tipo de envase registrado.")
+            return
+
+        query = """UPDATE lotes SET kgsenv = %s, fechaenv = %s, 
+                operarioenv = 101, idenvase = %s, envasado = %s, cantenvases = %s WHERE id = %s"""
+        self.db.execute_non_query(query, (int(kgs_env), fecha_sql, id_envase, is_env, int(cant_env), id_lote))
+        
+        self.cargar_lotes_db()
+        messagebox.showinfo("Éxito", "Etapa final de envasado registrada con éxito.")
 
     def _imprimir_detalle_lote(self):
         import os
@@ -652,109 +803,6 @@ class LotesView(ctk.CTkFrame):
         self.ent_kgs_ingreso.delete(0, "end")
         self.ent_kgs_ingreso.insert(0, str(total_kgs))
         self.ent_kgs_ingreso.configure(state="readonly")
-
-    def _crear_formulario_envasado(self):
-        frame_inputs = ctk.CTkFrame(self.tab_envasado, fg_color="transparent")
-        frame_inputs.pack(fill="x", padx=10, pady=5)
-
-        ctk.CTkLabel(frame_inputs, text="Nº Bolsón:", font=("Arial", 12, "bold")).grid(row=0, column=0, padx=5, pady=5)
-        self.ent_num_bolson = ctk.CTkEntry(frame_inputs, width=80)
-        self.ent_num_bolson.grid(row=0, column=1, padx=5, pady=5)
-
-        ctk.CTkLabel(frame_inputs, text="Producto:", font=("Arial", 12, "bold")).grid(row=0, column=2, padx=5, pady=5)
-        self.cmb_producto_bolson = ctk.CTkComboBox(frame_inputs, values=["BOP", "F1", "POLVO"], width=110)
-        self.cmb_producto_bolson.grid(row=0, column=3, padx=5, pady=5)
-
-        ctk.CTkLabel(frame_inputs, text="Lote MP:", font=("Arial", 12, "bold")).grid(row=0, column=4, padx=5, pady=5)
-        self.ent_lote_mp = ctk.CTkEntry(frame_inputs, width=100)
-        self.ent_lote_mp.grid(row=0, column=5, padx=5, pady=5)
-
-        ctk.CTkLabel(frame_inputs, text="KG:", font=("Arial", 12, "bold")).grid(row=0, column=6, padx=5, pady=5)
-        self.ent_kg_bolson = ctk.CTkEntry(frame_inputs, width=90)
-        self.ent_kg_bolson.grid(row=0, column=7, padx=5, pady=5)
-
-        ctk.CTkLabel(frame_inputs, text="Conservadora:", font=("Arial", 12, "bold")).grid(row=1, column=0, padx=5, pady=5)
-        self.ent_conservadora = ctk.CTkEntry(frame_inputs, width=80)
-        self.ent_conservadora.grid(row=1, column=1, padx=5, pady=5)
-
-        ctk.CTkLabel(frame_inputs, text="Turno:", font=("Arial", 12, "bold")).grid(row=1, column=2, padx=5, pady=5)
-        self.cmb_turno = ctk.CTkComboBox(frame_inputs, values=["DÍA", "NOCHE"], width=110)
-        self.cmb_turno.grid(row=1, column=3, padx=5, pady=5)
-
-        ctk.CTkLabel(frame_inputs, text="Responsable:", font=("Arial", 12, "bold")).grid(row=1, column=4, padx=5, pady=5)
-        self.ent_responsable = ctk.CTkEntry(frame_inputs, width=150)
-        self.ent_responsable.grid(row=1, column=5, columnspan=2, padx=5, pady=5)
-
-        self.btn_agregar_bolson = ctk.CTkButton(
-            frame_inputs, text="➕ Agregar Bolsón", fg_color="#8cb04e", text_color="black", 
-            font=("Arial", 12, "bold"), command=self._guardar_bolson_individual
-        )
-        self.btn_agregar_bolson.grid(row=1, column=7, padx=5, pady=5)
-
-        frame_tabla_bolsones = ctk.CTkFrame(self.tab_envasado, fg_color="transparent")
-        frame_tabla_bolsones.pack(fill="both", expand=True, padx=10, pady=5)
-
-        cols = ("num", "prod", "mp", "cons", "turno", "kg", "resp")
-        self.tree_bolsones = ttk.Treeview(frame_tabla_bolsones, columns=cols, show="headings", height=5)
-        
-        self.tree_bolsones.heading("num", text="Nº Bolsón")
-        self.tree_bolsones.heading("prod", text="Producto")
-        self.tree_bolsones.heading("mp", text="Lote MP")
-        self.tree_bolsones.heading("cons", text="Conservadora")
-        self.tree_bolsones.heading("turno", text="Turno")
-        self.tree_bolsones.heading("kg", text="KGs")
-        self.tree_bolsones.heading("resp", text="Responsable")
-
-        for col in cols:
-            self.tree_bolsones.column(col, anchor="center", width=85)
-
-        self.tree_bolsones.pack(side="left", fill="both", expand=True)
-
-    def _guardar_bolson_individual(self):
-        seleccion = self.tree.selection()
-        if not seleccion:
-            messagebox.showwarning("Atención", "Debe seleccionar un lote primero.")
-            return
-
-        id_lote = self.tree.item(seleccion[0])["values"][0]
-        num_bolson = self.ent_num_bolson.get().strip()
-        producto = self.cmb_producto_bolson.get()
-        lote_mp = self.ent_lote_mp.get().strip()
-        kgs = self.ent_kg_bolson.get().strip()
-        conservadora = self.ent_conservadora.get().strip()
-        turno = self.cmb_turno.get()
-        responsable = self.ent_responsable.get().strip()
-
-        if not (num_bolson and kgs):
-            messagebox.showwarning("Datos Faltantes", "Ingrese al menos el número de bolsón y los KGs.")
-            return
-
-        query = """
-            INSERT INTO bolsones (idlote, num_bolson, fecha_hora, producto, lote_mp, conservadora, turno, kgs, responsable)
-            VALUES (%s, %s, NOW(), %s, %s, %s, %s, %s, %s)
-        """
-        self.db.execute_non_query(query, (id_lote, num_bolson, producto, lote_mp, conservadora, turno, kgs, responsable))
-        self._cargar_bolsones_lote(id_lote)
-        self._recalcular_kilos_envasados(id_lote)
-
-    def _cargar_bolsones_lote(self, id_lote):
-        for item in self.tree_bolsones.get_children():
-            self.tree_bolsones.delete(item)
-
-        query = "SELECT num_bolson, producto, lote_mp, conservadora, turno, kgs, responsable FROM bolsones WHERE idlote = %s ORDER BY num_bolson ASC"
-        res = self.db.execute_query(query, (id_lote,))
-        if res:
-            for fila in res:
-                self.tree_bolsones.insert("", "end", values=fila)
-
-    def _recalcular_kilos_envasados(self, id_lote):
-        query = "SELECT SUM(kgs), COUNT(id) FROM bolsones WHERE idlote = %s"
-        res = self.db.execute_query(query, (id_lote,))
-        if res and res[0][0] is not None:
-            total_kgs, total_cant = res[0]
-            query_update = "UPDATE lotes SET kgsenv = %s, cantenvases = %s WHERE id = %s"
-            self.db.execute_non_query(query_update, (total_kgs, total_cant, id_lote))
-            self.cargar_lotes_db()
 
 
 class SelectorPesajesModal(ctk.CTkToplevel):
