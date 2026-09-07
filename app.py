@@ -4,6 +4,7 @@ import customtkinter as ctk
 import configparser
 import os
 import sys
+import subprocess
 import urllib.request
 import json
 from database import Database
@@ -22,7 +23,7 @@ except Exception:
 # =====================================================================
 # CONFIGURACIÓN DE ACTUALIZACIÓN AUTOMÁTICA (GITHUB PÚBLICO)
 # =====================================================================
-VERSION_LOCAL = "0.1.7"  # <-- Cambiá esto a mano en tu código cada vez que lances una versión
+VERSION_LOCAL = "0.1.8"  # <-- Cambiá esto a mano en tu código cada vez que lances una versión
 USER_GIT = "DanielMSAR"      # <-- Colocá tu usuario real de GitHub
 REPO_GIT = "Flowtrack"  # <-- Colocá el nombre exacto de tu repo
 
@@ -46,7 +47,13 @@ ARCHIVOS_SISTEMA = [
     "proveedores_view.py",
     "clientes_view.py",
     "varios_view.py",
-    "ticket_generator.py"
+    "ticket_generator.py",
+    "ctacteclientes_view.py",
+    "ctacte_pdf_generator.py",
+    "crear_usuario.py",
+    "compilar_sistema.py",
+    "lotes_view copy.py",
+    "pesajes_view copy.py"
 ]
 
 def verificar_actualizaciones_al_inicio():
@@ -84,11 +91,21 @@ def verificar_actualizaciones_al_inicio():
                     except Exception as e_archivo:
                         print(f"Error al descargar {archivo}: {e_archivo}")
                 
-                messagebox.showinfo("Éxito", "El sistema se actualizó correctamente. Se reiniciará la aplicación.")
+                messagebox.showinfo(
+                    "Éxito",
+                    "El sistema se actualizó correctamente. Se iniciará la compilación."
+                )
                 root_temporal.destroy()
                 
-                # Reiniciamos el script en caliente con los nuevos archivos .py cargados
-                os.execv(sys.executable, ['python'] + sys.argv)
+                # Ejecutamos la compilación en una consola independiente y cerramos la app.
+                ruta_base = os.path.dirname(os.path.abspath(__file__))
+                ruta_compilador = os.path.join(ruta_base, "compilar.bat")
+                subprocess.Popen(
+                    ["cmd", "/c", ruta_compilador],
+                    cwd=ruta_base,
+                    creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0)
+                )
+                sys.exit(0)
             else:
                 root_temporal.destroy() # Si dice que no, destruimos el root temporal y sigue el inicio normal
                 
