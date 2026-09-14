@@ -1,0 +1,23 @@
+import tkinter as tk
+from time import strftime
+
+def update_clock():
+    time_string = strftime('%H:%M:%S')
+    date_string = strftime('%A, %B %d, %Y')
+    clock_label.config(text=time_string)
+    date_label.config(text=date_string)
+    clock_label.after(1000, update_clock)
+
+root = tk.Tk()
+root.title('Reloj')
+root.geometry('400x150')
+root.configure(bg='#1e1e1e')
+
+clock_label = tk.Label(root, font=('Arial', 60, 'bold'), background='#1e1e1e', foreground='#00ff00')
+clock_label.pack(expand=True)
+
+date_label = tk.Label(root, font=('Arial', 16), background='#1e1e1e', foreground='#00ff00')
+date_label.pack()
+
+update_clock()
+root.mainloop()

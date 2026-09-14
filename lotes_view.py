@@ -119,6 +119,7 @@ class LotesView(ctk.CTkFrame):
     def _inicializar_datos_db(self):
         self.cargar_lotes_db()
         self._cargar_combo_envases()
+        self._cargar_combo_productos()
         self._setear_tiempos_actuales()
 
     def _setear_tiempos_actuales(self):
@@ -252,14 +253,35 @@ class LotesView(ctk.CTkFrame):
                     self.lista_envases.append((id_env, nombre, cap))
                     valores.append(f"{id_env} - {nombre} ({cap} kg)")
             
-            if valores:
-                self.cmb_envase.configure(values=valores)
-                self.cmb_envase.set(valores[0])
-            else:
-                self.cmb_envase.configure(values=["No hay envases cargados"])
-                self.cmb_envase.set("No hay envases cargados")
+            # Verificación de existencia del widget para evitar errores
+            if hasattr(self, 'cmb_envase'):
+                if valores:
+                    self.cmb_envase.configure(values=valores)
+                    self.cmb_envase.set(valores[0])
+                else:
+                    self.cmb_envase.configure(values=["No hay envases cargados"])
+                    self.cmb_envase.set("No hay envases cargados")
         except Exception as e:
             print(f"Error al cargar combo de envases: {e}")
+
+    def _cargar_combo_productos(self):
+        try:
+            query = "SELECT producto FROM productos ORDER BY producto ASC"
+            resultados = self.db.execute_query(query)
+            
+            valores = []
+            if resultados:
+                for fila in resultados:
+                    valores.append(str(fila[0]))
+            
+            if valores:
+                self.cmb_producto_bolson.configure(values=valores)
+                self.cmb_producto_bolson.set(valores[0])
+            else:
+                self.cmb_producto_bolson.configure(values=["No hay productos"])
+                self.cmb_producto_bolson.set("No hay productos")
+        except Exception as e:
+            print(f"Error al cargar combo de productos: {e}")
 
     def cargar_lotes_db(self):
         for item in self.tree.get_children():
@@ -446,7 +468,7 @@ class LotesView(ctk.CTkFrame):
         if not seleccion: return
             
         id_lote = self.tree.item(seleccion[0])["values"][0]
-        kgs_proc = self.ent_kgs_proc.get()
+        kgs_proc = self.ent_kgs_proc.get().strip()
         is_proc = 1 if self.chk_procesado.get() == 1 else 0
         
         fecha_usr = self.ent_fecha_proc.get().strip()
@@ -662,7 +684,7 @@ class LotesView(ctk.CTkFrame):
         self.ent_num_bolson.grid(row=0, column=1, padx=5, pady=5)
 
         ctk.CTkLabel(frame_inputs, text="Producto:", font=("Arial", 12, "bold")).grid(row=0, column=2, padx=5, pady=5)
-        self.cmb_producto_bolson = ctk.CTkComboBox(frame_inputs, values=["BOP", "F1", "POLVO"], width=110)
+        self.cmb_producto_bolson = ctk.CTkComboBox(frame_inputs, values=[], width=150)
         self.cmb_producto_bolson.grid(row=0, column=3, padx=5, pady=5)
 
         ctk.CTkLabel(frame_inputs, text="Lote MP:", font=("Arial", 12, "bold")).grid(row=0, column=4, padx=5, pady=5)
@@ -720,13 +742,19 @@ class LotesView(ctk.CTkFrame):
         num_bolson = self.ent_num_bolson.get().strip()
         producto = self.cmb_producto_bolson.get()
         lote_mp = self.ent_lote_mp.get().strip()
-        kgs = self.ent_kg_bolson.get().strip()
+        kgs_str = self.ent_kg_bolson.get().strip()
         conservadora = self.ent_conservadora.get().strip()
         turno = self.cmb_turno.get()
         responsable = self.ent_responsable.get().strip()
 
-        if not (num_bolson and kgs):
+        if not (num_bolson and kgs_str):
             messagebox.showwarning("Datos Faltantes", "Ingrese al menos el número de bolsón y los KGs.")
+            return
+
+        try:
+            kgs = float(kgs_str)
+        except ValueError:
+            messagebox.showwarning("Datos Inválidos", "El peso en KG debe ser un número entero o decimal válido.")
             return
 
         query = """
@@ -752,7 +780,7 @@ class LotesView(ctk.CTkFrame):
         res = self.db.execute_query(query, (id_lote,))
         if res and res[0][0] is not None:
             total_kgs, total_cant = res[0]
-            query_update = "UPDATE lotes SET kgsenv = %s, cantenvases = %s WHERE id = %s"
+            query_update = "UPDATE lotes SET kgsenv = %s, cantenvases = %s, envasado = 1 WHERE id = %s"
             self.db.execute_non_query(query_update, (total_kgs, total_cant, id_lote))
             self.cargar_lotes_db()
 
@@ -818,7 +846,6 @@ class SelectorPesajesModal(ctk.CTkToplevel):
         if not items_seleccionados:
             messagebox.showwarning("Atención", "No seleccionó ningún pesaje de la lista.", parent=self)
             return
-
         try:
             query_insert = """
                 INSERT INTO detalle_lote (idlote, idpesaje, kgs, fecha, origen) 
