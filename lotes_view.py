@@ -289,8 +289,8 @@ class LotesView(ctk.CTkFrame):
             
         query = """
             SELECT lotes.id, lotes.fechainicio, lotes.lote, lotes.kgsingreso, 
-                   lotes.procesado, lotes.kgsprocesado, lotes.envasado, lotes.kgsenv,
-                   lotes.fechaprocesado, lotes.fechaenv
+                lotes.procesado, lotes.kgsprocesado, lotes.envasado, lotes.kgsenv,
+                lotes.fechaprocesado, lotes.fechaenv
             FROM lotes
             WHERE lotes.activo = 1
             ORDER BY lotes.id DESC

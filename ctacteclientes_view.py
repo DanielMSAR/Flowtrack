@@ -31,6 +31,8 @@ class CtaCteClientesView:
         # CARGA INICIAL AUTOMÁTICA
         self._buscar_clientes()
         
+        self._build_tab_pagos()
+        
 
     def _build_tab_detalle(self):
         # --- 1. PANEL SUPERIOR: Búsqueda de Cliente por Nombre ---
@@ -593,6 +595,148 @@ class CtaCteClientesView:
             vals = self.tree_salida.item(item, "values")
             total += float(vals[4])
         self.lbl_total_salida.configure(text=f"TOTAL SALIDA: ${total:,.2f}")
+
+    def _build_tab_pagos(self):
+        """Construye la interfaz para el registro de Pagos / Cobros"""
+        # Panel Contenedor Principal
+        frame_pago = ctk.CTkFrame(self.tab_pagos, fg_color="#f8f9fa", corner_radius=6)
+        frame_pago.pack(fill="both", expand=True, padx=20, pady=20)
+
+        ctk.CTkLabel(
+            frame_pago, text="💳 Registro de Pago / Cobro de Cliente", 
+            font=("Arial", 16, "bold"), text_color="#1a5276"
+        ).pack(pady=(15, 20))
+
+        # --- SELECCIÓN DE CLIENTE ---
+        frame_cli = ctk.CTkFrame(frame_pago, fg_color="transparent")
+        frame_cli.pack(fill="x", padx=20, pady=5)
+
+        ctk.CTkLabel(frame_cli, text="Cliente:", font=("Arial", 12, "bold"), text_color="black", width=120, anchor="w").pack(side="left")
+        
+        self.entry_buscar_cli_pago = ctk.CTkEntry(frame_cli, placeholder_text="Buscar cliente...", width=180)
+        self.entry_buscar_cli_pago.pack(side="left", padx=5)
+        self.entry_buscar_cli_pago.bind("<Return>", lambda e: self._buscar_clientes_pago())
+
+        btn_buscar_cli_pago = ctk.CTkButton(
+            frame_cli, text="🔍", width=40, fg_color="#8cb04e", hover_color="#7ba23c",
+            text_color="black", command=self._buscar_clientes_pago
+        )
+        btn_buscar_cli_pago.pack(side="left", padx=5)
+
+        self.combo_clientes_pago = ctk.CTkComboBox(
+            frame_cli, width=250, values=["Seleccione cliente..."], command=self._on_cliente_pago_selected
+        )
+        self.combo_clientes_pago.pack(side="left", padx=5)
+
+        # --- DETALLES DEL PAGO ---
+        fields = [
+            ("N° Comprobante / Recibo:", "entry_comp_pago", "Ej: REC-0001"),
+            ("Monto Abonado ($):", "entry_monto_pago", "0.00"),
+            ("Forma de Pago:", "combo_forma_pago", ["Efectivo", "Transferencia", "Cheque", "Mercado Pago", "Otro"]),
+            ("Detalle / Observación:", "entry_detalle_pago", "Ej: Pago a cuenta / Cancela factura N° X")
+        ]
+
+        for label_text, attr_name, default_val in fields:
+            f = ctk.CTkFrame(frame_pago, fg_color="transparent")
+            f.pack(fill="x", padx=20, pady=8)
+
+            ctk.CTkLabel(f, text=label_text, font=("Arial", 12, "bold"), text_color="black", width=160, anchor="w").pack(side="left")
+
+            if isinstance(default_val, list):
+                widget = ctk.CTkComboBox(f, values=default_val, width=250)
+                widget.set(default_val[0])
+            else:
+                widget = ctk.CTkEntry(f, placeholder_text=default_val, width=250)
+            
+            setattr(self, attr_name, widget)
+            widget.pack(side="left", padx=5)
+
+        # --- BOTÓN DE ACCIÓN ---
+        btn_registrar = ctk.CTkButton(
+            frame_pago, text="💾 Registrar Pago", fg_color="#27ae60", hover_color="#1e8449",
+            font=("Arial", 14, "bold"), height=40, command=self.guardar_pago
+        )
+        btn_registrar.pack(pady=30)
+
+        # Estado interno de pagos
+        self.cliente_pago_id = None
+        self._buscar_clientes_pago()
+
+    def _buscar_clientes_pago(self):
+        """Busca clientes para el selector de la solapa Pagos"""
+        texto = self.entry_buscar_cli_pago.get().strip()
+        if not self.db:
+            return
+        try:
+            if texto:
+                query = "SELECT id, cliente FROM clientes WHERE cliente LIKE %s ORDER BY cliente ASC LIMIT 50"
+                params = (f"%{texto}%",)
+            else:
+                query = "SELECT id, cliente FROM clientes ORDER BY cliente ASC LIMIT 100"
+                params = ()
+            
+            filas = self.db.execute_query(query, params) or []
+            self.mapa_clientes_pago = {f"{row[1]} (ID: {row[0]})": row[0] for row in filas}
+            opciones = list(self.mapa_clientes_pago.keys())
+            self.combo_clientes_pago.configure(values=opciones if opciones else ["Sin resultados"])
+            self.combo_clientes_pago.set("Seleccione cliente...")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al cargar clientes:\n{e}")
+
+    def _on_cliente_pago_selected(self, choice):
+        if hasattr(self, 'mapa_clientes_pago') and choice in self.mapa_clientes_pago:
+            self.cliente_pago_id = self.mapa_clientes_pago[choice]
+
+    def guardar_pago(self):
+        """Persiste el pago en la base de datos impactando directamente en el Haber"""
+        if not self.cliente_pago_id:
+            messagebox.showwarning("Atención", "Seleccione un cliente para registrar el pago.")
+            return
+
+        comprobante = self.entry_comp_pago.get().strip() or "RECIBO"
+        monto_str = self.entry_monto_pago.get().strip()
+        forma_pago = self.combo_forma_pago.get()
+        obs = self.entry_detalle_pago.get().strip()
+
+        try:
+            monto = float(monto_str)
+            if monto <= 0:
+                raise ValueError()
+        except ValueError:
+            messagebox.showwarning("Atención", "Ingrese un monto válido y mayor a 0.")
+            return
+
+        detalle = f"PAGO ({forma_pago})"
+        if obs:
+            detalle += f" - {obs}"
+
+        try:
+            fecha_actual = datetime.date.today()
+            
+            # Inserta el movimiento impactando en el HABER (columna 9)
+            query_cta = """
+                INSERT INTO ctacteclientes 
+                (idcliente, fecha, comprobante, detalle, cantidad, unidad, pu, debe, haber, liquidado)
+                VALUES (%s, %s, %s, %s, NULL, NULL, NULL, 0.0, %s, 0)
+            """
+            params_cta = (self.cliente_pago_id, fecha_actual, comprobante, detalle, monto)
+            self.db.execute_non_query(query_cta, params_cta)
+
+            messagebox.showinfo("Éxito", f"Pago de ${monto:,.2f} registrado correctamente.")
+
+            # Limpiar formulario
+            self.entry_monto_pago.delete(0, "end")
+            self.entry_comp_pago.delete(0, "end")
+            self.entry_detalle_pago.delete(0, "end")
+
+            # Actualizar solapa de Detalle de Cuenta si coincide el cliente activo
+            if self.cliente_seleccionado_id == self.cliente_pago_id:
+                self.cargar_ctacte_cliente()
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al guardar el pago:\n{e}")
+
+
 
     def guardar_salida(self):
         """Persiste el Maestro-Detalle de Salida e impacta opcionalmente en la Cta Cte"""
