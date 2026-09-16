@@ -122,6 +122,14 @@ class LotesView(ctk.CTkFrame):
         self._cargar_combo_productos()
         self._setear_tiempos_actuales()
 
+    def _limpiar_formulario_envasado(self):
+        """Limpia las entradas del formulario de envasado dejando los valores por defecto."""
+        self.ent_num_bolson.delete(0, "end")
+        self.ent_lote_mp.delete(0, "end")
+        self.ent_kg_bolson.delete(0, "end")
+        self.ent_conservadora.delete(0, "end")
+        self.ent_responsable.delete(0, "end")
+
     def _setear_tiempos_actuales(self):
         ahora = datetime.now()
         fecha_hoy_ar = ahora.strftime('%d-%m-%Y')
@@ -354,6 +362,10 @@ class LotesView(ctk.CTkFrame):
 
             self.ent_lote.delete(0, "end")
             self.ent_lote.insert(0, str(lote))
+            
+            # --- NUEVO: Carga automática de Lote MP ---
+            self.ent_lote_mp.delete(0, "end")
+            self.ent_lote_mp.insert(0, str(lote))
             
             self.ent_kgs_ingreso.configure(state="normal")
             self.ent_kgs_ingreso.delete(0, "end")
@@ -764,6 +776,7 @@ class LotesView(ctk.CTkFrame):
         self.db.execute_non_query(query, (id_lote, num_bolson, producto, lote_mp, conservadora, turno, kgs, responsable))
         self._cargar_bolsones_lote(id_lote)
         self._recalcular_kilos_envasados(id_lote)
+        self._limpiar_formulario_envasado()
 
     def _cargar_bolsones_lote(self, id_lote):
         for item in self.tree_bolsones.get_children():
