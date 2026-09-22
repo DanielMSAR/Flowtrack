@@ -14,6 +14,7 @@ from clientes_view import ClientesView
 from productos_view import ProductosView
 from varios_view import VariosView
 from ctacteclientes_view import CtaCteClientesView
+from ctacteproveedores_view import CtaCteProveedoresView
 from PIL import Image
 import os
 import webbrowser
@@ -289,15 +290,10 @@ class MainView:
         elif nombre_modulo == "Clientes":  
             self.vista_clientes = ClientesView(self.content_frame, self.db)
         elif nombre_modulo == "Cta. Cte. Clientes":
-         self.vista_ctacte_clientes = CtaCteClientesView(self.content_frame, self.db)
+            self.vista_ctacte_clientes = CtaCteClientesView(self.content_frame, self.db)
         elif nombre_modulo in ("Cta. Cte. Prov.", "Cta. Cte."):
-            self.welcome_label = ctk.CTkLabel(
-                self.content_frame, 
-                text=f"Módulo: {nombre_modulo}\n(Próximamente en desarrollo)", 
-                text_color="gray", 
-                font=("Arial", 24)
-            )
-            self.welcome_label.pack(pady=100)
+            # Instanciamos la vista pasándole el contenedor central y la DB
+            self.vista_ctacte_proveedores = CtaCteProveedoresView(self.content_frame, self.db)
         else:
             # Mensaje temporal para los módulos que aún no creamos
             self.welcome_label = ctk.CTkLabel(

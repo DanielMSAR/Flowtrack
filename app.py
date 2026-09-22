@@ -49,6 +49,7 @@ ARCHIVOS_SISTEMA = [
     "varios_view.py",
     "ticket_generator.py",
     "ctacteclientes_view.py",
+    "ctacteproveedores_view.py",
     "ctacte_pdf_generator.py",
     "crear_usuario.py",
     "compilar_sistema.py",
