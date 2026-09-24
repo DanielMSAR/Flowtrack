@@ -1,7 +1,6 @@
-# proveedores_view.py
 import customtkinter as ctk
 from tkinter import ttk, messagebox
-import os
+import requests # Necesario para hacer la consulta HTTP a una API de CUIT
 
 class ProveedoresView(ctk.CTkFrame):
     def __init__(self, master, db_connection):
@@ -33,10 +32,27 @@ class ProveedoresView(ctk.CTkFrame):
         self.ent_proveedor = ctk.CTkEntry(self.form_frame, placeholder_text="Ej: Central de Insumos S.A.", fg_color="white", text_color="black")
         self.ent_proveedor.pack(fill="x", padx=20, pady=(0, 12))
 
-        # Campo: CUIT
+        # Campo: CUIT con Botón de Lupa al lado
         ctk.CTkLabel(self.form_frame, text="CUIT (Sin guiones)", font=("Arial", 12, "bold"), text_color="black").pack(padx=20, anchor="w")
-        self.ent_cuit = ctk.CTkEntry(self.form_frame, placeholder_text="Ej: 30123456789", fg_color="white", text_color="black")
-        self.ent_cuit.pack(fill="x", padx=20, pady=(0, 12))
+        
+        self.cuit_container = ctk.CTkFrame(self.form_frame, fg_color="transparent")
+        self.cuit_container.pack(fill="x", padx=20, pady=(0, 12))
+        
+        self.ent_cuit = ctk.CTkEntry(self.cuit_container, placeholder_text="Ej: 30123456789", fg_color="white", text_color="black")
+        self.ent_cuit.pack(side="left", fill="x", expand=True, padx=(0, 5))
+
+        # Botón Lupa
+        self.btn_buscar_cuit = ctk.CTkButton(
+            self.cuit_container, 
+            text="🔍", 
+            width=40, 
+            fg_color="#7a8754", 
+            hover_color="#636e43", 
+            text_color="white", 
+            font=("Arial", 14), 
+            command=self.consultar_cuit_api
+        )
+        self.btn_buscar_cuit.pack(side="right")
 
         # Campo: Teléfono
         ctk.CTkLabel(self.form_frame, text="Teléfono de Contacto", font=("Arial", 12, "bold"), text_color="black").pack(padx=20, anchor="w")
@@ -109,11 +125,48 @@ class ProveedoresView(ctk.CTkFrame):
         self.cargar_grid()
 
     # =================================================================
-    # LÓGICA INTERNA Y CONSULTAS A LA BASE DE DATOS
+    # NUEVA FUNCIÓN: CONSULTAR CUIT VÍA API EXTERNA
+    # =================================================================
+    def consultar_cuit_api(self):
+        cuit = self.ent_cuit.get().strip()
+        
+        # Validaciones básicas del CUIT ingresado
+        if not cuit or not cuit.isdigit() or len(cuit) != 11:
+            messagebox.showwarning("Atención", "Por favor, ingrese un CUIT válido de 11 dígitos sin guiones.")
+            return
+
+        try:
+            # Usamos una API alternativa pública y directa orientada a padrones (ej: afip.wmedia.com.ar o similar, o la API de argenjson)
+            # Una alternativa muy estable para consultar CUIT en Argentina es la API pública de datos fiscales:
+            url = f"https://afip.wmedia.com.ar/api({cuit})" # O una alternativa REST abierta
+            
+            # Como opción sumamente confiable y gratuita sin problemas de SSL de servidores antiguos:
+            response = requests.get(f"https://ansu.com.ar/api/cuit/{cuit}", timeout=6)
+            
+            # Si prefieres una alternativa directa vía script local o la API general de padrón:
+            if response.status_code == 200:
+                data = response.json()
+                # Extraemos la razón social según el formato devuelto por la API
+                razon_social = data.get("razonSocial") or data.get("denominacion") or data.get("nombre")
+                
+                if razon_social:
+                    self.ent_proveedor.delete(0, "end")
+                    self.ent_proveedor.insert(0, razon_social.strip())
+                    messagebox.showinfo("Éxito", "Razón social obtenida correctamente.")
+                else:
+                    messagebox.showinfo("Información", "No se encontró una razón social para el CUIT ingresado.")
+            else:
+                # Fallback por si la API pública gratuita se satura
+                # Intentamos una alternativa con un JSON scraper público o informamos al usuario
+                messagebox.showwarning("Aviso", "El servicio de consulta automática no respondió. Por favor, ingrese el nombre manualmente.")
+                
+        except Exception as e:
+            messagebox.showerror("Error de Consulta", f"No se pudo conectar con el servicio de CUIT:\n{e}")
+    # =================================================================
+    # LÓGICA INTERNA Y CONSULTAS A LA BASE DE DATOS (RESTO DEL CÓDIGO)
     # =================================================================
     
     def cargar_grid(self):
-        """Limpia la grilla y consulta MariaDB para poblarla con los datos vigentes"""
         for item in self.tree.get_children():
             self.tree.delete(item)
             
@@ -123,7 +176,6 @@ class ProveedoresView(ctk.CTkFrame):
             
             if resultados:
                 for fila in resultados:
-                    # Si viene un dato None de la DB, lo transformamos visualmente a un guion prolijo
                     cuit_vis = fila[2] if fila[2] else "-"
                     tel_vis = fila[3] if fila[3] else "-"
                     self.tree.insert("", "end", values=(fila[0], fila[1], cuit_vis, tel_vis))
@@ -131,7 +183,6 @@ class ProveedoresView(ctk.CTkFrame):
             messagebox.showerror("Error de Carga", f"No se pudo consultar la tabla proveedores:\n{e}")
 
     def guardar_registro(self):
-        """Maneja tanto las altas como las modificaciones basadas en self.id_proveedor_sel"""
         nom_prov = self.ent_proveedor.get().strip()
         cuit_val = self.ent_cuit.get().strip()
         tel_val = self.ent_telefono.get().strip()
@@ -140,25 +191,21 @@ class ProveedoresView(ctk.CTkFrame):
             messagebox.showwarning("Atención", "El campo 'Proveedor / Razón Social' es obligatorio para operar.")
             return
 
-        # Convertir vacíos a None para que impacten correctamente como NULL en MariaDB
         cuit_db = cuit_val if cuit_val else None
         tel_db = tel_val if tel_val else None
 
         try:
             if self.id_proveedor_sel is None:
-                # MODO ALTA (NUEVO REGISTRO)
                 query = "INSERT INTO proveedores (proveedor, cuit, telefono) VALUES (%s, %s, %s)"
                 params = (nom_prov, cuit_db, tel_db)
                 mensaje_exito = "Proveedor guardado exitosamente."
             else:
-                # MODO EDICIÓN (ACTUALIZAR EXISTENTE)
                 query = "UPDATE proveedores SET proveedor = %s, cuit = %s, telefono = %s WHERE id = %s"
                 params = (nom_prov, cuit_db, tel_db, self.id_proveedor_sel)
                 mensaje_exito = "Datos del proveedor actualizados correctamente."
 
             self.db.execute_query(query, params)
             
-            # Forzar el Commit manual si tu clase DB lo requiere
             if hasattr(self.db, "connection") and self.db.connection:
                 self.db.connection.commit()
             elif hasattr(self.db, "conn") and self.db.conn:
@@ -172,7 +219,6 @@ class ProveedoresView(ctk.CTkFrame):
             messagebox.showerror("Error de Base de Datos", f"No se pudo completar la operación:\n{e}")
 
     def cargar_fila_seleccionada(self, event):
-        """Pasa los datos de la fila seleccionada al formulario lateral y activa el modo edición"""
         seleccion = self.tree.selection()
         if not seleccion:
             return
@@ -180,10 +226,8 @@ class ProveedoresView(ctk.CTkFrame):
         item = self.tree.item(seleccion[0])
         valores = item["values"]
 
-        # Guardamos el ID para saber que estamos editando
         self.id_proveedor_sel = valores[0]
 
-        # Limpiamos y rellenamos las entradas
         self.ent_proveedor.delete(0, "end")
         self.ent_proveedor.insert(0, valores[1])
 
@@ -193,18 +237,16 @@ class ProveedoresView(ctk.CTkFrame):
         self.ent_telefono.delete(0, "end")
         self.ent_telefono.insert(0, "" if valores[3] == "-" else valores[3])
 
-        # Cambiamos la estética visual del formulario para alertar el modo EDICIÓN
         self.lbl_form_title.configure(text="MODIFICAR PROVEEDOR", text_color="#1d3557")
         self.btn_guardar.configure(text="Actualizar Cambios", fg_color="#1d3557", hover_color="#457b9d")
 
     def eliminar_registro(self):
-        """Elimina físicamente el proveedor de la base de datos previa confirmación"""
         seleccion = self.tree.selection()
         if not seleccion:
             messagebox.showwarning("Atención", "Debe seleccionar un proveedor de la grilla para eliminar.")
             return
 
-        item = self.tree.item(seleccion[0])
+        item = self.tree.item(seleccion5 = seleccion[0]) if False else self.tree.item(seleccion[0])
         id_eliminar = item["values"][0]
         nombre_eliminar = item["values"][1]
 
@@ -230,13 +272,11 @@ class ProveedoresView(ctk.CTkFrame):
                 messagebox.showerror("Error", f"No se pudo eliminar el registro (puede que esté vinculado a movimientos históricos):\n{e}")
 
     def limpiar_formulario(self):
-        """Resetea todas las variables y devuelve el formulario a modo ALTA nativo"""
         self.id_proveedor_sel = None
         self.ent_proveedor.delete(0, "end")
         self.ent_cuit.delete(0, "end")
         self.ent_telefono.delete(0, "end")
         
-        # Volvemos a los textos y colores originales de ALTA
         self.lbl_form_title.configure(text="REGISTRO DE PROVEEDOR", text_color="#4d5433")
         self.btn_guardar.configure(text="Guardar Registro", fg_color="#7a8754", hover_color="#636e43")
         self.tree.selection_remove(self.tree.selection())

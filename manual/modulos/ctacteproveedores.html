@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cuenta Corriente Proveedores - Manual FlowTrack</title>
+    <link rel="stylesheet" href="../estile.css">
+</head>
+<body>
+    <div class="header">
+        <h1>FlowTrack - Manual de Usuario</h1>
+        <p>Módulo: Cuenta Corriente Proveedores</p>
+    </div>
+
+    <div class="container">
+        <a href="../index.html" class="btn-volver">← Volver al Índice</a>
+
+        <h2>Descripción General</h2>
+        <p>El módulo de <strong>Cuenta Corriente Proveedores</strong> gestiona de manera centralizada el estado de cuenta y compromisos de pago con los proveedores. Permite registrar las compras/ingresos de mercadería, la imputación de remesas o pagos realizados y la generación de cierres de saldo contables.</p>
+
+        <h2>Solapas del Módulo</h2>
+
+        <h3>1. Detalle de Cuenta</h3>
+        <p>Muestra el resumen de cuenta corriente del proveedor seleccionado, registrando las compras que generan saldo acreedor y los pagos aplicados.</p>
+        <ol>
+            <li>Ingrese la razón social en <strong>Buscar Proveedor</strong> y presione <strong>🔍 Buscar</strong>.</li>
+            <li>Seleccione el proveedor de la lista desplegable para cargar su resumen financiero.</li>
+            <li>Utilice la casilla <strong>Ocultar Liquidados</strong> para filtrar movimientos antiguos y concentrarse en facturas pendientes de pago.</li>
+            <li>Haga clic en <strong>🖨️ Imprimir Detalle</strong> para descargar o imprimir el resumen de cuenta en PDF.</li>
+            <li>Presione <strong>🔒 Realizar Cierre de Período</strong> si desea saldar los movimientos actuales y arrastrar el saldo neto resultante hacia un nuevo período.</li>
+        </ol>
+
+        <h3>2. Ingresos / Compras</h3>
+        <p>Permite asentar facturas de compra o remitos de recepción emitidos por los proveedores.</p>
+        <ol>
+            <li>Seleccione el proveedor e ingrese el <strong>N° Comprobante</strong> (ej. FC-0001).</li>
+            <li>Compruebe que el casillero <strong>Agregar a Cta. Cte.</strong> esté tildado para que la compra incremente el saldo adeudado al proveedor.</li>
+            <li>Ingrese el ítem especificando <strong>Producto/Item</strong>, <strong>Cant.</strong> y <strong>P.U. ($)</strong>, y presione <strong>➕ Agregar Ítem</strong>.</li>
+            <li>Verifique el subtotal global e invoque la acción presionado <strong>💾 Registrar Ingreso</strong>.</li>
+        </ol>
+
+        <h3>3. Pagos / Remesas</h3>
+        <p>Se utiliza para registrar los pagos efectuados a los proveedores por cancelación parcial o total de comprobantes.</p>
+        <ol>
+            <li>Busque y elija el proveedor al que se le realiza la cancelación.</li>
+            <li>Defina el <strong>N° Comprobante / Orden Pago</strong>, el <strong>Monto Abonado ($)</strong> y la <strong>Forma de Pago</strong> utilizada.</li>
+            <li>Incorpore cualquier detalle complementario en el cuadro <strong>Detalle / Observación</strong>.</li>
+            <li>Haga clic en <strong>💾 Registrar Pago</strong>. El importe ingresará por la columna <em>Debe</em>, disminuyendo la deuda acumulada con dicho proveedor.</li>
+        </ol>
+
+        <div class="alerta-critica">
+            <strong>⚠️ Regla del Sistema:</strong> En Cuentas Corrientes de Proveedores, las compras agregan saldo a pagar (van al <strong>Haber</strong>), mientras que las órdenes de pago y pagos efectuados reducen la deuda (van al <strong>Debe</strong>).
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cuenta Corriente Clientes - Manual FlowTrack</title>
+    <link rel="stylesheet" href="../estile.css">
+</head>
+<body>
+    <div class="header">
+        <h1>FlowTrack - Manual de Usuario</h1>
+        <p>Módulo: Cuenta Corriente Clientes</p>
+    </div>
+
+    <div class="container">
+        <a href="../index.html" class="btn-volver">← Volver al Índice</a>
+
+        <h2>Descripción General</h2>
+        <p>El módulo de <strong>Cuenta Corriente Clientes</strong> permite administrar de forma integral las deudas, comprobantes, salidas de mercadería y cobros asociados a cada cliente. Ofrece una vista detallada del estado financiero del cliente, generación de reportes e impresión de resúmenes en formato PDF.</p>
+
+        <h2>Solapas del Módulo</h2>
+
+        <h3>1. Detalle de Cuenta</h3>
+        <p>Permite consultar el historial de movimientos de un cliente seleccionado (facturas, remitos, notas de débito/crédito y cobros) con el cálculo automático de su saldo acumulado.</p>
+        <ol>
+            <li>En el panel superior, ingrese el nombre o razón social en <strong>Buscar Cliente</strong> y presione <strong>🔍 Buscar</strong> o la tecla <strong>Enter</strong>.</li>
+            <li>Seleccione el cliente correspondiente de la lista desplegable.</li>
+            <li>Utilice la opción <strong>Ocultar Liquidados</strong> para alternar entre ver todos los movimientos históricos o únicamente aquellos pendientes de cancelación.</li>
+            <li>Para emitir un reporte físico o digital, haga clic en <strong>🖨️ Imprimir Detalle</strong>.</li>
+            <li>Para consolidar el período y fijar el saldo arrastrado, presione <strong>🔒 Realizar Cierre de Período</strong>.</li>
+        </ol>
+
+        <h3>2. Salidas</h3>
+        <p>Permite registrar remisos o ventas directas asociadas a un cliente especificando los productos y valores correspondientes.</p>
+        <ol>
+            <li>Busque y seleccione el cliente en la cabecera.</li>
+            <li>Ingrese el <strong>N° Comprobante</strong> de la salida (ej. REM-0001).</li>
+            <li>Asegúrese de mantener marcado el cuadro <strong>Agregar a Cta. Cte.</strong> si desea que la venta impacte automáticamente como una deuda en el saldo del cliente.</li>
+            <li>En el panel de ítems, complete los campos <strong>Producto</strong>, <strong>Cant.</strong> y <strong>P.U. ($)</strong>, y presione <strong>➕ Agregar Ítem</strong>.</li>
+            <li>Verifique los totales en la grilla y presione <strong>💾 Registrar Salida</strong> para asentar el movimiento.</li>
+        </ol>
+
+        <h3>3. Pagos / Cobros</h3>
+        <p>Permite imputar cobros o entregas de dinero recibidas por parte de los clientes.</p>
+        <ol>
+            <li>Seleccione el cliente correspondiente utilizando el buscador.</li>
+            <li>Complete los campos obligatorios: <strong>N° Comprobante / Recibo</strong>, <strong>Monto Abonado ($)</strong> y seleccione la <strong>Forma de Pago</strong> (Efectivo, Transferencia, Cheque, etc.).</li>
+            <li>Agregue una descripción u observación en el campo <strong>Detalle / Observación</strong> para facilitar su trazabilidad.</li>
+            <li>Presione <strong>💾 Registrar Pago</strong>. El monto se acreditará inmediatamente en el <em>Haber</em> de la cuenta del cliente, reduciendo su saldo deudor.</li>
+        </ol>
+
+        <div class="alerta-critica">
+            <strong>⚠️ Regla del Sistema:</strong> En la Cuenta Corriente de Clientes, las ventas y salidas aumentan la deuda (van al <strong>Debe</strong>), mientras que los cobros y entregas disminuyen la deuda (van al <strong>Haber</strong>). El realizar un <strong>Cierre de Período</strong> liquida los registros previos y genera un único registro de apertura con el saldo anterior arrastrado.
+        </div>
+    </div>
+</body>
+</html>
