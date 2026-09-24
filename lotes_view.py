@@ -177,7 +177,7 @@ class LotesView(ctk.CTkFrame):
         lbl_kgs = ctk.CTkLabel(self.tab_ingreso, text="Kilogramos Ingreso:", font=("Arial", 14, "bold"))
         lbl_kgs.grid(row=0, column=2, padx=(20, 10), pady=10, sticky="w")
         
-        self.ent_kgs_ingreso = ctk.CTkEntry(self.tab_ingreso, width=150, font=("Arial", 14), state="readonly")
+        self.ent_kgs_ingreso = ctk.CTkEntry(self.tab_ingreso, width=150, font=("Arial", 14))
         self.ent_kgs_ingreso.grid(row=0, column=3, padx=10, pady=10, sticky="w")
 
         frame_time = ctk.CTkFrame(self.tab_ingreso, fg_color="transparent")
