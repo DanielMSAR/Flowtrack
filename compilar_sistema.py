@@ -9,7 +9,7 @@ def compilar_y_limpiar():
     # Ejecuta el comando de compilación nativo en el directorio actual
     subprocess.run([sys.executable, "-m", "compileall", "."], check=True)
     
-    print("\n2. Procesando y limpiando archivos .pyc...")
+    print("\n2. Procesando archivos .pyc y eliminando los .py originales...")
     archivos_procesados = 0
 
     # Recorremos todas las carpetas del proyecto buscando los __pycache__
@@ -30,9 +30,19 @@ def compilar_y_limpiar():
                     # Copiamos el archivo a la carpeta de arriba con el nombre limpio
                     shutil.copy2(ruta_original, ruta_destino)
                     print(f" -> Procesado con éxito: {nuevo_nombre}")
+                    
+                    # Eliminamos el archivo .py original (protegiendo este script)
+                    ruta_py = os.path.join(carpeta_superior, f"{nombre_base}.py")
+                    if os.path.exists(ruta_py) and nombre_base != "compilar_sistema":
+                        try:
+                            os.remove(ruta_py)
+                            print(f"    -> Eliminado .py original: {nombre_base}.py")
+                        except Exception as e:
+                            print(f"    -> No se pudo eliminar {nombre_base}.py: {e}")
+
                     archivos_procesados += 1
 
-    print(f"\n¡Todo listo! Se procesaron {archivos_procesados} archivos binarios.")
+    print(f"\n¡Todo listo! Se procesaron {archivos_procesados} archivos.")
     print("Ya podés llevarte los archivos .pyc limpios en tu pendrive.")
 
 if __name__ == "__main__":
