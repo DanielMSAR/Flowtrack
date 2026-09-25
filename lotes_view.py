@@ -171,20 +171,20 @@ class LotesView(ctk.CTkFrame):
     def _crear_formulario_ingreso(self):
         lbl_lote = ctk.CTkLabel(self.tab_ingreso, text="Código / Nombre Lote:", font=("Arial", 14, "bold"))
         lbl_lote.grid(row=0, column=0, padx=(20, 10), pady=10, sticky="w")
-        self.ent_lote = ctk.CTkEntry(self.tab_ingreso, width=180, font=("Arial", 14))
+        self.ent_lote = ctk.CTkEntry(self.tab_ingreso, width=120, font=("Arial", 14))
         self.ent_lote.grid(row=0, column=1, padx=10, pady=10, sticky="w")
 
         lbl_kgs = ctk.CTkLabel(self.tab_ingreso, text="Kilogramos Ingreso:", font=("Arial", 14, "bold"))
         lbl_kgs.grid(row=0, column=2, padx=(20, 10), pady=10, sticky="w")
         
-        self.ent_kgs_ingreso = ctk.CTkEntry(self.tab_ingreso, width=150, font=("Arial", 14))
+        self.ent_kgs_ingreso = ctk.CTkEntry(self.tab_ingreso, width=100, font=("Arial", 14))
         self.ent_kgs_ingreso.grid(row=0, column=3, padx=10, pady=10, sticky="w")
 
         frame_time = ctk.CTkFrame(self.tab_ingreso, fg_color="transparent")
         frame_time.grid(row=0, column=4, padx=(20, 10), pady=10, sticky="w")
 
         ctk.CTkLabel(frame_time, text="Fecha:", font=("Arial", 13, "bold")).pack(side="left", padx=2)
-        self.ent_fecha_ingreso = ctk.CTkEntry(frame_time, width=105, font=("Arial", 13), placeholder_text="DD-MM-YYYY")
+        self.ent_fecha_ingreso = ctk.CTkEntry(frame_time, width=90, font=("Arial", 13), placeholder_text="DD-MM-YYYY")
         self.ent_fecha_ingreso.pack(side="left", padx=5)
 
         ctk.CTkLabel(frame_time, text="Hora:", font=("Arial", 13, "bold")).pack(side="left", padx=(8, 2))
