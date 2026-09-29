@@ -120,6 +120,7 @@ class LotesView(ctk.CTkFrame):
         self.cargar_lotes_db()
         self._cargar_combo_envases()
         self._cargar_combo_productos()
+        self._cargar_combo_origenes()
         self._setear_tiempos_actuales()
 
     def _limpiar_formulario_envasado(self):
@@ -180,6 +181,11 @@ class LotesView(ctk.CTkFrame):
         self.ent_kgs_ingreso = ctk.CTkEntry(self.tab_ingreso, width=90, font=("Arial", 14))
         self.ent_kgs_ingreso.grid(row=0, column=3, padx=10, pady=10, sticky="w")
 
+        lbl_origen = ctk.CTkLabel(self.tab_ingreso, text="Origen Agrario:", font=("Arial", 14, "bold"))
+        lbl_origen.grid(row=1, column=0, padx=(20, 10), pady=10, sticky="w")
+        self.cmb_origen = ctk.CTkComboBox(self.tab_ingreso, width=160, font=("Arial", 13), state="readonly")
+        self.cmb_origen.grid(row=1, column=1, padx=10, pady=10, sticky="w")
+
         frame_time = ctk.CTkFrame(self.tab_ingreso, fg_color="transparent")
         frame_time.grid(row=0, column=4, padx=(20, 10), pady=10, sticky="w")
 
@@ -196,7 +202,7 @@ class LotesView(ctk.CTkFrame):
         self.cmb_min_ingreso.pack(side="left", padx=2)
 
         frame_acciones = ctk.CTkFrame(self.tab_ingreso, fg_color="transparent")
-        frame_acciones.grid(row=1, column=0, columnspan=5, pady=(15, 5), padx=20, sticky="ew")
+        frame_acciones.grid(row=1, column=2, columnspan=3, pady=(15, 5), padx=20, sticky="ew")
 
         frame_acciones.columnconfigure(0, weight=1)
         frame_acciones.columnconfigure(1, weight=1)
@@ -247,6 +253,29 @@ class LotesView(ctk.CTkFrame):
 
         self.btn_guardar_proc = ctk.CTkButton(self.tab_procesado, text="REGISTRAR PROCESAMIENTO", fg_color="#4d5433", hover_color="#393e26", font=("Arial", 14, "bold"), height=40, command=self._guardar_procesado)
         self.btn_guardar_proc.grid(row=2, column=0, columnspan=5, pady=20, padx=20, sticky="ew")
+
+    def _cargar_combo_origenes(self):
+        self.lista_id_origenes = []
+        try:
+            query = "SELECT id, loteagrario FROM Loteagrario ORDER BY loteagrario ASC"
+            resultados = self.db.execute_query(query)
+            
+            valores = []
+            if resultados:
+                for fila in resultados:
+                    id_orig, nombre = fila
+                    self.lista_id_origenes.append((id_orig, nombre))
+                    valores.append(f"{id_orig} - {nombre}")
+            
+            if hasattr(self, 'cmb_origen'):
+                if valores:
+                    self.cmb_origen.configure(values=valores)
+                    self.cmb_origen.set(valores[0])
+                else:
+                    self.cmb_origen.configure(values=["Sin Orígenes"])
+                    self.cmb_origen.set("Sin Orígenes")
+        except Exception as e:
+            print(f"Error al cargar combo de orígenes: {e}")
 
     def _cargar_combo_envases(self):
         self.lista_envases = []
@@ -371,6 +400,13 @@ class LotesView(ctk.CTkFrame):
             self.ent_kgs_ingreso.delete(0, "end")
             self.ent_kgs_ingreso.insert(0, str(kgs_in))
             self.ent_kgs_ingreso.configure(state="readonly")
+
+            # Posicionar el combo de origen
+            if id_origen:
+                for val in self.cmb_origen.cget("values"):
+                    if val.startswith(f"{id_origen} -"):
+                        self.cmb_origen.set(val)
+                        break
             
             self.ent_fecha_ingreso.delete(0, "end")
             self.ent_fecha_ingreso.insert(0, f_in_dt.strftime('%d-%m-%Y'))
@@ -402,12 +438,18 @@ class LotesView(ctk.CTkFrame):
         lote_cod = self.ent_lote.get().strip()
         kgs = "0"
         
+        # Obtener id de origen del combo
+        try:
+            id_origen = int(self.cmb_origen.get().split(" - ")[0])
+        except:
+            id_origen = None
+
         fecha_usr = self.ent_fecha_ingreso.get().strip()
         h_usr = self.cmb_hora_ingreso.get()
         m_usr = self.cmb_min_ingreso.get()
         
-        if not lote_cod:
-            messagebox.showwarning("Campos Incompletos", "Verifique el identificador del lote.")
+        if not lote_cod or id_origen is None:
+            messagebox.showwarning("Campos Incompletos", "Verifique el identificador del lote y el origen.")
             return
 
         fecha_sql = self._convertir_a_sql(fecha_usr, h_usr, m_usr)
@@ -421,8 +463,8 @@ class LotesView(ctk.CTkFrame):
             return
 
         try:
-            query_insertar = "INSERT INTO lotes (lote, kgsingreso, fechainicio) VALUES (%s, %s, %s)"
-            self.db.execute_non_query(query_insertar, (lote_cod, int(kgs), fecha_sql))
+            query_insertar = "INSERT INTO lotes (lote, kgsingreso, fechainicio, idorigen) VALUES (%s, %s, %s, %s)"
+            self.db.execute_non_query(query_insertar, (lote_cod, int(kgs), fecha_sql, id_origen))
             
             self.cargar_lotes_db()
             self.ent_lote.delete(0, "end")
