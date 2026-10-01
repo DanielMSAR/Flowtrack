@@ -30,7 +30,10 @@ def generar_pdf_ctacte(nombre_cliente, movimientos, total_debe, total_haber, sal
 
     if not filename:
         fecha_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"CtaCte_{nombre_cliente.replace(' ', '_')}_{fecha_str}.pdf"
+        # Limpiar nombre de caracteres no válidos para archivos (como :)
+        nombre_limpio = nombre_cliente.replace('PROVEEDOR: ', '').replace('CLIENTE: ', '').replace(':', '').replace(' ', '_')
+        filename = f"CtaCte_{nombre_limpio}_{fecha_str}.pdf"
+
 
     filepath = os.path.join(carpeta_impresiones, filename)
 
