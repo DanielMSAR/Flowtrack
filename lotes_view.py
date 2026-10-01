@@ -546,12 +546,7 @@ class LotesView(ctk.CTkFrame):
         messagebox.showinfo("Éxito", "Etapa de procesamiento guardada correctamente.")
 
     def _imprimir_detalle_lote(self):
-        import os
-        try:
-            import qrcode
-        except ImportError:
-            messagebox.showerror("Librería Faltante", "Por favor, instale las librerías necesarias ejecutando:\npip install qrcode pillow")
-            return
+        from ticket_generator import generar_detalle_lote_a4_pdf, abrir_e_imprimir_pdf
         
         seleccion = self.tree.selection()
         if not seleccion:
@@ -560,110 +555,71 @@ class LotesView(ctk.CTkFrame):
             
         id_lote = self.tree.item(seleccion[0])["values"][0]
         
-        query = """
+        # 1. Obtener datos principales del Lote y Origen Agrario
+        query_lote = """
             SELECT 
-                lotes.lote, 
-                lotes.fechainicio, 
-                lotes.fechaprocesado, 
-                lotes.kgsingreso, 
-                lotes.kgsenv,
-                lotes.procesado
-            FROM lotes
-            WHERE lotes.id = %s
+                l.lote, l.fechainicio, l.fechaprocesado, l.kgsingreso, l.kgsenv, l.procesado,
+                l.idorigen, lo.loteagrario
+            FROM lotes l
+            LEFT JOIN Loteagrario lo ON l.idorigen = lo.id
+            WHERE l.id = %s
         """
-        res = self.db.execute_query(query, (id_lote,))
-        
-        if not res:
+        res_lote = self.db.execute_query(query_lote, (id_lote,))
+        if not res_lote:
             messagebox.showerror("Error", "No se pudieron recuperar los datos del lote seleccionado.")
             return
-            
-        lote_num, f_inicio, f_proc, kgs_verde, kgs_env, es_proc = res[0]
-        
-        f_inicio_str = f_inicio.strftime('%d-%m-%Y %H:%M:%S') if isinstance(f_inicio, datetime) else str(f_inicio or '-')
-        
-        f_proc_str = "PENDIENTE"
-        if es_proc == 1 and f_proc:
-            f_proc_str = f_proc.strftime('%d-%m-%Y %H:%M:%S') if isinstance(f_proc, datetime) else str(f_proc)
-            
-        kgs_verde_str = f"{int(kgs_verde):,} Kgs" if kgs_verde is not None else "0 Kgs"
-        kgs_env_str = f"{int(kgs_env):,} Kgs" if kgs_env is not None else "Pendiente"
 
-        directorio = "impresiones"
-        if not os.path.exists(directorio):
-            os.makedirs(directorio)
+        lote_num, f_inicio, f_proc, kgs_verde, kgs_env, es_proc, id_origen, nombre_origen = res_lote[0]
 
-        qr_texto = (
-            f"LOTE:{lote_num}\n"
-            f"ING: {f_inicio_str}\n"
-            f"PROC: {f_proc_str}\n"
-            f"KGS_VERDE: {kgs_verde_str}\n"
-            f"KGS_ENV: {kgs_env_str}"
-        )
-        
-        nombre_qr_img = os.path.join(directorio, f"qr_lote_{lote_num}.png")
-        qr = qrcode.QRCode(version=1, box_size=5, border=2)
-        qr.add_data(qr_texto)
-        qr.make(fit=True)
-        img_qr = qr.make_image(fill_color="black", back_color="white")
-        img_qr.save(nombre_qr_img)
+        # Formatear fechas
+        f_inicio_str = f_inicio.strftime('%d-%m-%Y %H:%M') if isinstance(f_inicio, datetime) else str(f_inicio or '-')
+        f_proc_str = f_proc.strftime('%d-%m-%Y %H:%M') if (es_proc == 1 and isinstance(f_proc, datetime)) else "PENDIENTE"
 
-        ruta_absoluta_qr = os.path.abspath(nombre_qr_img).replace("\\", "/")
-        
-        html_contenido = f"""<!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <style>
-                body {{
-                    font-family: 'Courier New', Courier, monospace;
-                    font-size: 14px;
-                    width: 290px;
-                    margin: 0;
-                    padding: 10px;
-                    color: #000;
-                }}
-                .text-center {{ text-align: center; }}
-                .linea {{ border-top: 1px dashed #000; margin: 8px 0; }}
-                .titulo {{ font-size: 18px; font-weight: bold; margin-bottom: 2px; }}
-                .sub {{ font-size: 11px; margin-bottom: 10px; }}
-                .campo {{ margin: 4px 0; word-wrap: break-word; }}
-                .label {{ font-weight: bold; }}
-                .qr-container {{ margin-top: 15px; text-align: center; }}
-                .qr-container img {{ width: 150px; height: 150px; }}
-            </style>
-        </head>
-        <body>
-            <div class="text-center titulo">FLOWTRACK</div>
-            <div class="text-center sub">COMPROBANTE DE TRAZABILIDAD</div>
-            <div class="linea"></div>
-            
-            <div class="campo"><span class="label">LOTE:</span> {lote_num}</div>
-            <div class="linea"></div>
-            
-            <div class="campo"><span class="label">FECHA/HORA INGRESO:</span><br>{f_inicio_str}</div>
-            <div class="campo"><span class="label">FECHA/HORA PROCESO:</span><br>{f_proc_str}</div>
-            <div class="linea"></div>
-            
-            <div class="campo"><span class="label">KILOS VERDE:</span> {kgs_verde_str}</div>
-            <div class="campo"><span class="label">KILOS ENVASADO:</span> {kgs_env_str}</div>
-            <div class="linea"></div>
-            
-            <div class="qr-container">
-                <img src="file:///{ruta_absoluta_qr}" alt="Código QR de Trazabilidad">
-                <div style="font-size: 10px; margin-top: 5px;">ESCANEAME PARA TRAZABILIDAD</div>
-            </div>
-            
-            <div class="linea"></div>
-            <div class="text-center" style="font-size: 11px;">DG SOLUCIONES - INDUSTRIAL</div>
-        </body>
-        </html>
-        """
+        # 2. Obtener pesajes incluidos
+        query_pesajes = "SELECT idpesaje, kgs, origen FROM detalle_lote WHERE idlote = %s ORDER BY iddetalle ASC"
+        res_pesajes = self.db.execute_query(query_pesajes, (id_lote,))
+        lista_pesajes = []
+        if res_pesajes:
+            for row in res_pesajes:
+                lista_pesajes.append({
+                    'idpesaje': row[0],
+                    'kgs': row[1] or 0,
+                    'origen': row[2] or '-'
+                })
 
-        nombre_html = os.path.join(directorio, f"ticket_lote_{lote_num}.html")
-        with open(nombre_html, "w", encoding="utf-8") as archivo_html:
-            archivo_html.write(html_contenido)
-            
-        os.startfile(os.path.abspath(nombre_html))
+        # 3. Obtener bolsones asociados
+        query_bolsones = "SELECT num_bolson, producto, turno, kgs FROM bolsones WHERE idlote = %s ORDER BY num_bolson ASC"
+        res_bolsones = self.db.execute_query(query_bolsones, (id_lote,))
+        lista_bolsones = []
+        if res_bolsones:
+            for row in res_bolsones:
+                lista_bolsones.append({
+                    'num': row[0],
+                    'prod': row[1] or '-',
+                    'turno': row[2] or '-',
+                    'kg': row[3] or 0
+                })
+
+        # Encapsular datos para el generador PDF
+        datos_reporte = {
+            'lote': lote_num,
+            'f_inicio': f_inicio_str,
+            'f_proc': f_proc_str,
+            'id_origen': id_origen or '',
+            'nombre_origen': nombre_origen or 'No asignado',
+            'es_proc': es_proc,
+            'kgs_ingreso': kgs_verde or 0,
+            'kgs_env': kgs_env or 0,
+            'pesajes': lista_pesajes,
+            'bolsones': lista_bolsones
+        }
+
+        try:
+            filename = f"detalle_lote_{lote_num}.pdf"
+            ruta_pdf = generar_detalle_lote_a4_pdf(datos_reporte, filename=filename)
+            abrir_e_imprimir_pdf(ruta_pdf)
+        except Exception as e:
+            messagebox.showerror("Error al Generar PDF", f"Ocurrió un problema al generar el documento: {str(e)}")
 
     def _cargar_detalle_lote(self, id_lote):
         for item in self.tree_detalle.get_children():
