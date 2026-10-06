@@ -11,9 +11,26 @@ class LotesView(ctk.CTkFrame):
         self.lista_id_origenes = []
         self.lista_envases = []  # Para guardar mapeos (id, nombre, capacidad) de la BD
 
-        # TÍTULO DEL MÓDULO
-        self.titulo = ctk.CTkLabel(self, text="GESTIÓN Y TRAZABILIDAD DE LOTES", font=("Arial", 20, "bold"), text_color="black")
-        self.titulo.pack(pady=(15, 10), padx=20, anchor="w")
+        # TÍTULO DEL MÓDULO Y BOTONES SUPERIORES
+        frame_top = ctk.CTkFrame(self, fg_color="transparent")
+        frame_top.pack(fill="x", padx=20, pady=(15, 10))
+        
+        self.titulo = ctk.CTkLabel(frame_top, text="GESTIÓN Y TRAZABILIDAD DE LOTES", font=("Arial", 20, "bold"), text_color="black")
+        self.titulo.pack(side="left")
+
+        self.btn_exportar_excel = ctk.CTkButton(
+            frame_top, text="📊 Excel (Últimos 10)", font=("Arial", 12, "bold"), 
+            fg_color="#2b5c8f", hover_color="#1f4268", text_color="white", 
+            command=self._exportar_excel_ultimos_lotes
+        )
+        self.btn_exportar_excel.pack(side="right", padx=(6, 0))
+
+        self.btn_exportar_lote_sel = ctk.CTkButton(
+            frame_top, text="📊 Excel (Lote Seleccionado)", font=("Arial", 12, "bold"), 
+            fg_color="#107c41", hover_color="#0b582e", text_color="white", 
+            command=self._exportar_excel_lote_seleccionado
+        )
+        self.btn_exportar_lote_sel.pack(side="right", padx=(0, 6))
 
         # --- SECCIÓN SUPERIOR: PANEL MAESTRO-DETALLE ---
         self.tabla_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -126,10 +143,19 @@ class LotesView(ctk.CTkFrame):
     def _limpiar_formulario_envasado(self):
         """Limpia las entradas del formulario de envasado dejando los valores por defecto."""
         self.ent_num_bolson.delete(0, "end")
-        self.ent_lote_mp.delete(0, "end")
         self.ent_kg_bolson.delete(0, "end")
         self.ent_conservadora.delete(0, "end")
         self.ent_responsable.delete(0, "end")
+        
+        ahora = datetime.now()
+        fecha_hoy_ar = ahora.strftime('%d-%m-%Y')
+        hora_actual = ahora.strftime('%H')
+        minuto_actual = ahora.strftime('%M')
+        if hasattr(self, 'ent_fecha_env'):
+            self.ent_fecha_env.delete(0, "end")
+            self.ent_fecha_env.insert(0, fecha_hoy_ar)
+            self.cmb_hora_env.set(hora_actual)
+            self.cmb_min_env.set(minuto_actual)
 
     def _setear_tiempos_actuales(self):
         ahora = datetime.now()
@@ -146,6 +172,12 @@ class LotesView(ctk.CTkFrame):
         self.ent_fecha_proc.insert(0, fecha_hoy_ar)
         self.cmb_hora_proc.set(hora_actual)
         self.cmb_min_proc.set(minuto_actual)
+
+        if hasattr(self, 'ent_fecha_env'):
+            self.ent_fecha_env.delete(0, "end")
+            self.ent_fecha_env.insert(0, fecha_hoy_ar)
+            self.cmb_hora_env.set(hora_actual)
+            self.cmb_min_env.set(minuto_actual)
 
     def _convertir_a_sql(self, fecha_ar, hora, minuto):
         try:
@@ -207,15 +239,19 @@ class LotesView(ctk.CTkFrame):
         frame_acciones.columnconfigure(0, weight=1)
         frame_acciones.columnconfigure(1, weight=1)
         frame_acciones.columnconfigure(2, weight=1)
+        frame_acciones.columnconfigure(3, weight=1)
 
-        self.btn_guardar_lote = ctk.CTkButton(frame_acciones, text="CREAR LOTE", font=("Arial", 14, "bold"), height=38, command=self._guardar_nuevo_lote)
-        self.btn_guardar_lote.grid(row=0, column=0, padx=5, sticky="ew")
+        self.btn_guardar_lote = ctk.CTkButton(frame_acciones, text="CREAR LOTE", font=("Arial", 13, "bold"), height=38, command=self._guardar_nuevo_lote)
+        self.btn_guardar_lote.grid(row=0, column=0, padx=4, sticky="ew")
 
-        self.btn_eliminar_lote = ctk.CTkButton(frame_acciones, text="🗑️ ELIMINAR LOTE", fg_color="#d9534f", hover_color="#c9302c", font=("Arial", 14, "bold"), height=38, command=self._eliminar_lote)
-        self.btn_eliminar_lote.grid(row=0, column=1, padx=5, sticky="ew")
+        self.btn_eliminar_lote = ctk.CTkButton(frame_acciones, text="🗑️ ELIMINAR", fg_color="#d9534f", hover_color="#c9302c", font=("Arial", 13, "bold"), height=38, command=self._eliminar_lote)
+        self.btn_eliminar_lote.grid(row=0, column=1, padx=4, sticky="ew")
 
-        self.btn_imprimir_lote = ctk.CTkButton(frame_acciones, text="🖨️ IMPRIMIR DETALLE", fg_color="#2b5c8f", hover_color="#1f4268", font=("Arial", 14, "bold"), height=38, command=self._imprimir_detalle_lote)
-        self.btn_imprimir_lote.grid(row=0, column=2, padx=5, sticky="ew")
+        self.btn_imprimir_lote = ctk.CTkButton(frame_acciones, text="🖨️ IMPRIMIR", fg_color="#2b5c8f", hover_color="#1f4268", font=("Arial", 13, "bold"), height=38, command=self._imprimir_detalle_lote)
+        self.btn_imprimir_lote.grid(row=0, column=2, padx=4, sticky="ew")
+
+        self.btn_excel_lote = ctk.CTkButton(frame_acciones, text="📊 EXCEL", fg_color="#107c41", hover_color="#0b582e", font=("Arial", 13, "bold"), height=38, command=self._exportar_excel_lote_seleccionado)
+        self.btn_excel_lote.grid(row=0, column=3, padx=4, sticky="ew")
 
     def _crear_formulario_procesado(self):
         lbl_kgs_p = ctk.CTkLabel(self.tab_procesado, text="Kgs Procesados:", font=("Arial", 14, "bold"))
@@ -555,13 +591,21 @@ class LotesView(ctk.CTkFrame):
             
         id_lote = self.tree.item(seleccion[0])["values"][0]
         
-        # 1. Obtener datos principales del Lote y Origen Agrario
+        # Consulta con JOIN a Loteagrario y Chacras
         query_lote = """
             SELECT 
-                l.lote, l.fechainicio, l.fechaprocesado, l.kgsingreso, l.kgsenv, l.procesado,
-                l.idorigen, lo.loteagrario
+                l.lote, 
+                l.fechainicio, 
+                l.fechaprocesado, 
+                l.kgsingreso, 
+                l.kgsenv, 
+                l.procesado,
+                l.idorigen, 
+                lo.loteagrario,
+                c.chacra
             FROM lotes l
             LEFT JOIN Loteagrario lo ON l.idorigen = lo.id
+            LEFT JOIN chacras c ON lo.idchacra = c.idchacra
             WHERE l.id = %s
         """
         res_lote = self.db.execute_query(query_lote, (id_lote,))
@@ -569,13 +613,25 @@ class LotesView(ctk.CTkFrame):
             messagebox.showerror("Error", "No se pudieron recuperar los datos del lote seleccionado.")
             return
 
-        lote_num, f_inicio, f_proc, kgs_verde, kgs_env, es_proc, id_origen, nombre_origen = res_lote[0]
+        lote_num, f_inicio, f_proc, kgs_verde, kgs_env, es_proc, id_origen, nombre_loteagrario, nombre_chacra = res_lote[0]
 
-        # Formatear fechas
+        # Formatear el texto del origen combinando Lote Agrario y Chacra
+        lote_txt = nombre_loteagrario or ''
+        chacra_txt = nombre_chacra or ''
+        
+        if lote_txt and chacra_txt:
+            origen_completo = f"{lote_txt} - {chacra_txt}"
+        elif lote_txt:
+            origen_completo = lote_txt
+        elif chacra_txt:
+            origen_completo = chacra_txt
+        else:
+            origen_completo = "No asignado"
+
         f_inicio_str = f_inicio.strftime('%d-%m-%Y %H:%M') if isinstance(f_inicio, datetime) else str(f_inicio or '-')
         f_proc_str = f_proc.strftime('%d-%m-%Y %H:%M') if (es_proc == 1 and isinstance(f_proc, datetime)) else "PENDIENTE"
 
-        # 2. Obtener pesajes incluidos
+        # Obtener pesajes
         query_pesajes = "SELECT idpesaje, kgs, origen FROM detalle_lote WHERE idlote = %s ORDER BY iddetalle ASC"
         res_pesajes = self.db.execute_query(query_pesajes, (id_lote,))
         lista_pesajes = []
@@ -587,7 +643,7 @@ class LotesView(ctk.CTkFrame):
                     'origen': row[2] or '-'
                 })
 
-        # 3. Obtener bolsones asociados
+        # Obtener bolsones
         query_bolsones = "SELECT num_bolson, producto, turno, kgs FROM bolsones WHERE idlote = %s ORDER BY num_bolson ASC"
         res_bolsones = self.db.execute_query(query_bolsones, (id_lote,))
         lista_bolsones = []
@@ -600,13 +656,12 @@ class LotesView(ctk.CTkFrame):
                     'kg': row[3] or 0
                 })
 
-        # Encapsular datos para el generador PDF
         datos_reporte = {
             'lote': lote_num,
             'f_inicio': f_inicio_str,
             'f_proc': f_proc_str,
             'id_origen': id_origen or '',
-            'nombre_origen': nombre_origen or 'No asignado',
+            'nombre_origen': origen_completo,
             'es_proc': es_proc,
             'kgs_ingreso': kgs_verde or 0,
             'kgs_env': kgs_env or 0,
@@ -689,56 +744,82 @@ class LotesView(ctk.CTkFrame):
         frame_inputs = ctk.CTkFrame(self.tab_envasado, fg_color="transparent")
         frame_inputs.pack(fill="x", padx=10, pady=5)
 
-        ctk.CTkLabel(frame_inputs, text="Nº Bolsón:", font=("Arial", 12, "bold")).grid(row=0, column=0, padx=5, pady=5)
-        self.ent_num_bolson = ctk.CTkEntry(frame_inputs, width=80)
-        self.ent_num_bolson.grid(row=0, column=1, padx=5, pady=5)
+        # Fila 0
+        ctk.CTkLabel(frame_inputs, text="Nº Bolsón:", font=("Arial", 12, "bold")).grid(row=0, column=0, padx=(5, 2), pady=5, sticky="w")
+        self.ent_num_bolson = ctk.CTkEntry(frame_inputs, width=75)
+        self.ent_num_bolson.grid(row=0, column=1, padx=(2, 8), pady=5, sticky="w")
 
-        ctk.CTkLabel(frame_inputs, text="Producto:", font=("Arial", 12, "bold")).grid(row=0, column=2, padx=5, pady=5)
-        self.cmb_producto_bolson = ctk.CTkComboBox(frame_inputs, values=[], width=150)
-        self.cmb_producto_bolson.grid(row=0, column=3, padx=5, pady=5)
+        ctk.CTkLabel(frame_inputs, text="Producto:", font=("Arial", 12, "bold")).grid(row=0, column=2, padx=(5, 2), pady=5, sticky="w")
+        self.cmb_producto_bolson = ctk.CTkComboBox(frame_inputs, values=[], width=140)
+        self.cmb_producto_bolson.grid(row=0, column=3, padx=(2, 8), pady=5, sticky="w")
 
-        ctk.CTkLabel(frame_inputs, text="Lote MP:", font=("Arial", 12, "bold")).grid(row=0, column=4, padx=5, pady=5)
-        self.ent_lote_mp = ctk.CTkEntry(frame_inputs, width=100)
-        self.ent_lote_mp.grid(row=0, column=5, padx=5, pady=5)
+        ctk.CTkLabel(frame_inputs, text="Lote MP:", font=("Arial", 12, "bold")).grid(row=0, column=4, padx=(5, 2), pady=5, sticky="w")
+        self.ent_lote_mp = ctk.CTkEntry(frame_inputs, width=90)
+        self.ent_lote_mp.grid(row=0, column=5, padx=(2, 8), pady=5, sticky="w")
 
-        ctk.CTkLabel(frame_inputs, text="KG:", font=("Arial", 12, "bold")).grid(row=0, column=6, padx=5, pady=5)
-        self.ent_kg_bolson = ctk.CTkEntry(frame_inputs, width=90)
-        self.ent_kg_bolson.grid(row=0, column=7, padx=5, pady=5)
+        ctk.CTkLabel(frame_inputs, text="KG:", font=("Arial", 12, "bold")).grid(row=0, column=6, padx=(5, 2), pady=5, sticky="w")
+        self.ent_kg_bolson = ctk.CTkEntry(frame_inputs, width=75)
+        self.ent_kg_bolson.grid(row=0, column=7, padx=(2, 8), pady=5, sticky="w")
 
-        ctk.CTkLabel(frame_inputs, text="Conservadora:", font=("Arial", 12, "bold")).grid(row=1, column=0, padx=5, pady=5)
-        self.ent_conservadora = ctk.CTkEntry(frame_inputs, width=80)
-        self.ent_conservadora.grid(row=1, column=1, padx=5, pady=5)
+        ctk.CTkLabel(frame_inputs, text="Turno:", font=("Arial", 12, "bold")).grid(row=0, column=8, padx=(5, 2), pady=5, sticky="w")
+        self.cmb_turno = ctk.CTkComboBox(frame_inputs, values=["DÍA", "NOCHE"], width=95)
+        self.cmb_turno.grid(row=0, column=9, padx=(2, 5), pady=5, sticky="w")
 
-        ctk.CTkLabel(frame_inputs, text="Turno:", font=("Arial", 12, "bold")).grid(row=1, column=2, padx=5, pady=5)
-        self.cmb_turno = ctk.CTkComboBox(frame_inputs, values=["DÍA", "NOCHE"], width=110)
-        self.cmb_turno.grid(row=1, column=3, padx=5, pady=5)
+        # Fila 1
+        ctk.CTkLabel(frame_inputs, text="Conservadora:", font=("Arial", 12, "bold")).grid(row=1, column=0, padx=(5, 2), pady=5, sticky="w")
+        self.ent_conservadora = ctk.CTkEntry(frame_inputs, width=75)
+        self.ent_conservadora.grid(row=1, column=1, padx=(2, 8), pady=5, sticky="w")
 
-        ctk.CTkLabel(frame_inputs, text="Responsable:", font=("Arial", 12, "bold")).grid(row=1, column=4, padx=5, pady=5)
-        self.ent_responsable = ctk.CTkEntry(frame_inputs, width=150)
-        self.ent_responsable.grid(row=1, column=5, columnspan=2, padx=5, pady=5)
+        ctk.CTkLabel(frame_inputs, text="Responsable:", font=("Arial", 12, "bold")).grid(row=1, column=2, padx=(5, 2), pady=5, sticky="w")
+        self.ent_responsable = ctk.CTkEntry(frame_inputs, width=140)
+        self.ent_responsable.grid(row=1, column=3, padx=(2, 8), pady=5, sticky="w")
+
+        frame_time_env = ctk.CTkFrame(frame_inputs, fg_color="transparent")
+        frame_time_env.grid(row=1, column=4, columnspan=5, padx=(5, 8), pady=5, sticky="w")
+
+        ctk.CTkLabel(frame_time_env, text="Fecha:", font=("Arial", 12, "bold")).pack(side="left", padx=2)
+        self.ent_fecha_env = ctk.CTkEntry(frame_time_env, width=90, font=("Arial", 12), placeholder_text="DD-MM-YYYY")
+        self.ent_fecha_env.pack(side="left", padx=3)
+
+        ctk.CTkLabel(frame_time_env, text="Hora:", font=("Arial", 12, "bold")).pack(side="left", padx=(6, 2))
+        self.cmb_hora_env = ctk.CTkComboBox(frame_time_env, values=self.horas_validas, width=65, state="readonly")
+        self.cmb_hora_env.pack(side="left", padx=2)
+
+        ctk.CTkLabel(frame_time_env, text="Min:", font=("Arial", 12, "bold")).pack(side="left", padx=(4, 2))
+        self.cmb_min_env = ctk.CTkComboBox(frame_time_env, values=self.minutos_validas, width=65, state="readonly")
+        self.cmb_min_env.pack(side="left", padx=2)
 
         self.btn_agregar_bolson = ctk.CTkButton(
             frame_inputs, text="➕ Agregar Bolsón", fg_color="#8cb04e", text_color="black", 
-            font=("Arial", 12, "bold"), command=self._guardar_bolson_individual
+            font=("Arial", 12, "bold"), height=32, command=self._guardar_bolson_individual
         )
-        self.btn_agregar_bolson.grid(row=1, column=7, padx=5, pady=5)
+        self.btn_agregar_bolson.grid(row=1, column=9, padx=5, pady=5, sticky="ew")
 
         frame_tabla_bolsones = ctk.CTkFrame(self.tab_envasado, fg_color="transparent")
         frame_tabla_bolsones.pack(fill="both", expand=True, padx=10, pady=5)
 
-        cols = ("num", "prod", "mp", "cons", "turno", "kg", "resp")
+        cols = ("num", "fecha", "prod", "mp", "cons", "turno", "kg", "resp", "tiempo")
         self.tree_bolsones = ttk.Treeview(frame_tabla_bolsones, columns=cols, show="headings", height=5)
         
         self.tree_bolsones.heading("num", text="Nº Bolsón")
+        self.tree_bolsones.heading("fecha", text="Fecha / Hora")
         self.tree_bolsones.heading("prod", text="Producto")
         self.tree_bolsones.heading("mp", text="Lote MP")
         self.tree_bolsones.heading("cons", text="Conservadora")
         self.tree_bolsones.heading("turno", text="Turno")
         self.tree_bolsones.heading("kg", text="KGs")
         self.tree_bolsones.heading("resp", text="Responsable")
+        self.tree_bolsones.heading("tiempo", text="Tiempo Env.")
 
-        for col in cols:
-            self.tree_bolsones.column(col, anchor="center", width=85)
+        self.tree_bolsones.column("num", anchor="center", width=75)
+        self.tree_bolsones.column("fecha", anchor="center", width=120)
+        self.tree_bolsones.column("prod", anchor="center", width=100)
+        self.tree_bolsones.column("mp", anchor="center", width=80)
+        self.tree_bolsones.column("cons", anchor="center", width=90)
+        self.tree_bolsones.column("turno", anchor="center", width=70)
+        self.tree_bolsones.column("kg", anchor="center", width=70)
+        self.tree_bolsones.column("resp", anchor="center", width=100)
+        self.tree_bolsones.column("tiempo", anchor="center", width=90)
 
         self.tree_bolsones.pack(side="left", fill="both", expand=True)
 
@@ -757,6 +838,10 @@ class LotesView(ctk.CTkFrame):
         turno = self.cmb_turno.get()
         responsable = self.ent_responsable.get().strip()
 
+        fecha_usr = self.ent_fecha_env.get().strip()
+        h_usr = self.cmb_hora_env.get()
+        m_usr = self.cmb_min_env.get()
+
         if not (num_bolson and kgs_str):
             messagebox.showwarning("Datos Faltantes", "Ingrese al menos el número de bolsón y los KGs.")
             return
@@ -767,11 +852,16 @@ class LotesView(ctk.CTkFrame):
             messagebox.showwarning("Datos Inválidos", "El peso en KG debe ser un número entero o decimal válido.")
             return
 
+        fecha_sql = self._convertir_a_sql(fecha_usr, h_usr, m_usr)
+        if not fecha_sql:
+            messagebox.showerror("Fecha Inválida", "Verifique que la fecha tenga el formato DD-MM-YYYY válido.")
+            return
+
         query = """
             INSERT INTO bolsones (idlote, num_bolson, fecha_hora, producto, lote_mp, conservadora, turno, kgs, responsable)
-            VALUES (%s, %s, NOW(), %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
-        self.db.execute_non_query(query, (id_lote, num_bolson, producto, lote_mp, conservadora, turno, kgs, responsable))
+        self.db.execute_non_query(query, (id_lote, num_bolson, fecha_sql, producto, lote_mp, conservadora, turno, kgs, responsable))
         self._cargar_bolsones_lote(id_lote)
         self._recalcular_kilos_envasados(id_lote)
         self._limpiar_formulario_envasado()
@@ -780,11 +870,22 @@ class LotesView(ctk.CTkFrame):
         for item in self.tree_bolsones.get_children():
             self.tree_bolsones.delete(item)
 
-        query = "SELECT num_bolson, producto, lote_mp, conservadora, turno, kgs, responsable FROM bolsones WHERE idlote = %s ORDER BY num_bolson ASC"
+        query = """
+            SELECT b.num_bolson, b.producto, b.lote_mp, b.conservadora, 
+                   b.turno, b.kgs, b.responsable, b.fecha_hora, l.fechaprocesado
+            FROM bolsones b
+            JOIN lotes l ON b.idlote = l.id
+            WHERE b.idlote = %s 
+            ORDER BY b.num_bolson ASC
+        """
         res = self.db.execute_query(query, (id_lote,))
         if res:
             for fila in res:
-                self.tree_bolsones.insert("", "end", values=fila)
+                tiempo_env = self._formatear_delta_tiempo(fila[8], fila[7])
+                f_env = fila[7]
+                f_env_str = f_env.strftime('%d-%m-%Y %H:%M') if isinstance(f_env, datetime) else str(f_env or '-')
+                valores = (fila[0], f_env_str, fila[1], fila[2], fila[3], fila[4], fila[5], fila[6], tiempo_env)
+                self.tree_bolsones.insert("", "end", values=valores)
 
     def _recalcular_kilos_envasados(self, id_lote):
         query = "SELECT SUM(kgs), COUNT(id) FROM bolsones WHERE idlote = %s"
@@ -794,6 +895,341 @@ class LotesView(ctk.CTkFrame):
             query_update = "UPDATE lotes SET kgsenv = %s, cantenvases = %s, envasado = 1 WHERE id = %s"
             self.db.execute_non_query(query_update, (total_kgs, total_cant, id_lote))
             self.cargar_lotes_db()
+
+    def _exportar_excel_ultimos_lotes(self):
+        try:
+            import openpyxl
+            from openpyxl.styles import Font, PatternFill
+            from openpyxl.utils import get_column_letter
+            from tkinter import filedialog
+            import os
+        except ImportError:
+            messagebox.showerror("Error", "Falta la librería openpyxl para exportar a Excel. Consulte al administrador.")
+            return
+            
+        filepath = filedialog.asksaveasfilename(
+            defaultextension=".xlsx",
+            filetypes=[("Archivos de Excel", "*.xlsx"), ("Todos los archivos", "*.*")],
+            title="Guardar reporte de lotes como...",
+            initialfile="Ultimos_10_Lotes.xlsx"
+        )
+        if not filepath:
+            return
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Últimos Lotes"
+
+        font_header = Font(bold=True, color="FFFFFF")
+        fill_header = PatternFill(start_color="4F81BD", end_color="4F81BD", fill_type="solid")
+        font_sub = Font(bold=True, color="000000")
+        fill_sub1 = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
+        fill_sub2 = PatternFill(start_color="E2EFDA", end_color="E2EFDA", fill_type="solid")
+        
+        query_lotes = """
+            SELECT 
+                l.id, l.lote, l.fechainicio, l.fechaprocesado, l.kgsingreso, 
+                l.kgsenv, l.procesado, lo.loteagrario, c.chacra
+            FROM lotes l
+            LEFT JOIN Loteagrario lo ON l.idorigen = lo.id
+            LEFT JOIN chacras c ON lo.idchacra = c.idchacra
+            WHERE l.activo = 1
+            ORDER BY l.id DESC
+            LIMIT 10
+        """
+        res_lotes = self.db.execute_query(query_lotes)
+        
+        if not res_lotes:
+            messagebox.showinfo("Información", "No hay lotes para exportar.")
+            return
+
+        current_row = 1
+        
+        for lote_info in res_lotes:
+            id_lote, lote_num, f_inicio, f_proc, kgs_verde, kgs_env, es_proc, nombre_loteagrario, nombre_chacra = lote_info
+            
+            lote_txt = nombre_loteagrario or ''
+            chacra_txt = nombre_chacra or ''
+            if lote_txt and chacra_txt:
+                origen_completo = f"{lote_txt} - {chacra_txt}"
+            else:
+                origen_completo = lote_txt or chacra_txt or "No asignado"
+                
+            f_inicio_str = f_inicio.strftime('%d-%m-%Y %H:%M') if isinstance(f_inicio, datetime) else str(f_inicio or '-')
+            f_proc_str = f_proc.strftime('%d-%m-%Y %H:%M') if (es_proc == 1 and isinstance(f_proc, datetime)) else "PENDIENTE"
+            
+            ws.cell(row=current_row, column=1, value=f"LOTE: {lote_num}").font = font_header
+            ws.cell(row=current_row, column=1).fill = fill_header
+            ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=6)
+            current_row += 1
+            
+            ws.append(["Fecha Inicio:", f_inicio_str, "Kgs Ingreso:", kgs_verde or 0, "Origen:", origen_completo])
+            current_row += 1
+            ws.append(["Fecha Proc.:", f_proc_str, "Kgs Envasado:", kgs_env or 0, "Procesado:", "SI" if es_proc == 1 else "NO"])
+            current_row += 2
+            
+            query_pesajes = "SELECT idpesaje, kgs, origen FROM detalle_lote WHERE idlote = %s ORDER BY iddetalle ASC"
+            res_pesajes = self.db.execute_query(query_pesajes, (id_lote,))
+            if res_pesajes:
+                ws.append(["--- PESAJES ASIGNADOS ---"])
+                ws.cell(row=current_row, column=1).font = font_sub
+                current_row += 1
+                
+                encabezados_p = ["ID Pesaje", "Kgs", "Origen"]
+                ws.append(encabezados_p)
+                for col_idx in range(1, len(encabezados_p) + 1):
+                    ws.cell(row=current_row, column=col_idx).font = font_sub
+                    ws.cell(row=current_row, column=col_idx).fill = fill_sub1
+                current_row += 1
+                
+                for p in res_pesajes:
+                    ws.append([p[0], p[1], p[2]])
+                    current_row += 1
+                current_row += 1
+                
+            query_bolsones = "SELECT num_bolson, producto, turno, kgs FROM bolsones WHERE idlote = %s ORDER BY num_bolson ASC"
+            res_bolsones = self.db.execute_query(query_bolsones, (id_lote,))
+            if res_bolsones:
+                ws.append(["--- BOLSONES ENVASADOS ---"])
+                ws.cell(row=current_row, column=1).font = font_sub
+                current_row += 1
+                
+                encabezados_b = ["Nº Bolsón", "Producto", "Turno", "Kgs"]
+                ws.append(encabezados_b)
+                for col_idx in range(1, len(encabezados_b) + 1):
+                    ws.cell(row=current_row, column=col_idx).font = font_sub
+                    ws.cell(row=current_row, column=col_idx).fill = fill_sub2
+                current_row += 1
+                
+                for b in res_bolsones:
+                    ws.append([b[0], b[1], b[2], b[3]])
+                    current_row += 1
+                current_row += 1
+                
+            current_row += 2 
+            
+        for col in ws.columns:
+            max_length = 0
+            column_letter = get_column_letter(col[0].column)
+            for cell in col:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(cell.value)
+                except:
+                    pass
+            adjusted_width = (max_length + 2)
+            ws.column_dimensions[column_letter].width = adjusted_width
+
+        try:
+            wb.save(filepath)
+            messagebox.showinfo("Éxito", f"Reporte exportado correctamente a:\n{filepath}")
+            try:
+                os.startfile(filepath)
+            except AttributeError:
+                pass
+        except Exception as e:
+            messagebox.showerror("Error al guardar", f"No se pudo guardar el archivo Excel: {str(e)}\nAsegúrese de que el archivo no esté abierto en otro programa.")
+
+    def _exportar_excel_lote_seleccionado(self):
+        try:
+            import openpyxl
+            from openpyxl.styles import Font, PatternFill, Alignment
+            from openpyxl.utils import get_column_letter
+            from tkinter import filedialog
+            import os
+        except ImportError:
+            messagebox.showerror("Error", "Falta la librería openpyxl para exportar a Excel.")
+            return
+
+        seleccion = self.tree.selection()
+        if not seleccion:
+            messagebox.showwarning("Atención", "Por favor, seleccione un lote de la grilla superior para exportar su detalle a Excel.")
+            return
+            
+        id_lote = self.tree.item(seleccion[0])["values"][0]
+        
+        # Consulta datos completos del lote
+        query_lote = """
+            SELECT 
+                l.id, l.lote, l.fechainicio, l.fechaprocesado, l.kgsingreso, 
+                l.kgsprocesado, l.kgsenv, l.procesado, l.envasado,
+                lo.loteagrario, c.chacra
+            FROM lotes l
+            LEFT JOIN Loteagrario lo ON l.idorigen = lo.id
+            LEFT JOIN chacras c ON lo.idchacra = c.idchacra
+            WHERE l.id = %s
+        """
+        res_lote = self.db.execute_query(query_lote, (id_lote,))
+        if not res_lote:
+            messagebox.showerror("Error", "No se encontraron los datos del lote seleccionado.")
+            return
+
+        (id_l, lote_num, f_inicio, f_proc, kgs_verde, kgs_proc, 
+         kgs_env, es_proc, es_env, nombre_loteagrario, nombre_chacra) = res_lote[0]
+
+        filepath = filedialog.asksaveasfilename(
+            defaultextension=".xlsx",
+            filetypes=[("Archivos de Excel", "*.xlsx"), ("Todos los archivos", "*.*")],
+            title=f"Guardar detalle del Lote {lote_num} como...",
+            initialfile=f"Detalle_Lote_{lote_num}.xlsx"
+        )
+        if not filepath:
+            return
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = f"Lote {lote_num}"
+
+        # Estilos
+        font_titulo = Font(name="Arial", size=14, bold=True, color="FFFFFF")
+        fill_titulo = PatternFill(start_color="1F4E79", end_color="1F4E79", fill_type="solid")
+        
+        font_sec = Font(name="Arial", size=11, bold=True, color="FFFFFF")
+        fill_sec_pesajes = PatternFill(start_color="2F5597", end_color="2F5597", fill_type="solid")
+        fill_sec_bolsones = PatternFill(start_color="385723", end_color="385723", fill_type="solid")
+        
+        font_sub = Font(name="Arial", size=10, bold=True, color="000000")
+        fill_sub_pesajes = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
+        fill_sub_bolsones = PatternFill(start_color="E2EFDA", end_color="E2EFDA", fill_type="solid")
+        
+        font_bold = Font(name="Arial", size=10, bold=True)
+        font_regular = Font(name="Arial", size=10)
+
+        # Origen
+        lote_txt = nombre_loteagrario or ''
+        chacra_txt = nombre_chacra or ''
+        if lote_txt and chacra_txt:
+            origen_completo = f"{lote_txt} - {chacra_txt}"
+        else:
+            origen_completo = lote_txt or chacra_txt or "No asignado"
+
+        f_inicio_str = f_inicio.strftime('%d-%m-%Y %H:%M') if isinstance(f_inicio, datetime) else str(f_inicio or '-')
+        f_proc_str = f_proc.strftime('%d-%m-%Y %H:%M') if (es_proc == 1 and isinstance(f_proc, datetime)) else ("PENDIENTE" if not f_proc else str(f_proc))
+        
+        tiempo_proc = self._formatear_delta_tiempo(f_inicio, f_proc) if es_proc == 1 else "-"
+
+        # 1. ENCABEZADO DEL LOTE
+        ws.cell(row=1, column=1, value=f"REPORTE DETALLADO - LOTE Nº {lote_num}").font = font_titulo
+        ws.cell(row=1, column=1).fill = fill_titulo
+        ws.cell(row=1, column=1).alignment = Alignment(horizontal="center", vertical="center")
+        ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=8)
+        ws.row_dimensions[1].height = 28
+
+        # Fila datos
+        ws.append([])
+        ws.append(["Fecha Inicio:", f_inicio_str, "Kgs Ingreso (Verde):", kgs_verde or 0, "Origen Agrario:", origen_completo, "", ""])
+        ws.append(["Fecha Procesado:", f_proc_str, "Kgs Procesados:", kgs_proc or 0, "¿Procesado?:", "SÍ" if es_proc == 1 else "NO", "Tiempo Proc.:", tiempo_proc])
+        ws.append(["Kgs Envasados:", kgs_env or 0, "¿Envasado?:", "SÍ" if es_env == 1 else "NO", "", "", "", ""])
+
+        for r in range(3, 6):
+            for c in range(1, 9):
+                cell = ws.cell(row=r, column=c)
+                if c in (1, 3, 5, 7):
+                    cell.font = font_bold
+                else:
+                    cell.font = font_regular
+
+        current_row = 7
+
+        # 2. SECCIÓN PESAJES
+        query_pesajes = "SELECT idpesaje, kgs, fecha, origen FROM detalle_lote WHERE idlote = %s ORDER BY iddetalle ASC"
+        res_pesajes = self.db.execute_query(query_pesajes, (id_lote,))
+
+        ws.cell(row=current_row, column=1, value="1. DETALLE DE PESAJES ASOCIADOS (MATERIA PRIMA)").font = font_sec
+        ws.cell(row=current_row, column=1).fill = fill_sec_pesajes
+        ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=8)
+        current_row += 1
+
+        encabezados_p = ["ID Pesaje", "Kilogramos", "Fecha / Hora", "Origen"]
+        ws.append(encabezados_p)
+        for col_idx in range(1, 5):
+            ws.cell(row=current_row, column=col_idx).font = font_sub
+            ws.cell(row=current_row, column=col_idx).fill = fill_sub_pesajes
+        current_row += 1
+
+        total_pesajes_kgs = 0
+        if res_pesajes:
+            for p in res_pesajes:
+                f_p_str = p[2].strftime('%d-%m-%Y %H:%M') if isinstance(p[2], datetime) else str(p[2] or '-')
+                ws.append([p[0], p[1] or 0, f_p_str, p[3] or '-'])
+                total_pesajes_kgs += (p[1] or 0)
+                current_row += 1
+            
+            # Fila total pesajes
+            ws.append(["TOTAL PESAJES:", total_pesajes_kgs, "", ""])
+            ws.cell(row=current_row, column=1).font = font_bold
+            ws.cell(row=current_row, column=2).font = font_bold
+            current_row += 1
+        else:
+            ws.append(["(Sin pesajes asociados)", "", "", ""])
+            current_row += 1
+
+        current_row += 1
+
+        # 3. SECCIÓN BOLSONES
+        query_bolsones = """
+            SELECT b.num_bolson, b.producto, b.lote_mp, b.conservadora, 
+                   b.turno, b.kgs, b.responsable, b.fecha_hora, l.fechaprocesado
+            FROM bolsones b
+            JOIN lotes l ON b.idlote = l.id
+            WHERE b.idlote = %s 
+            ORDER BY b.num_bolson ASC
+        """
+        res_bolsones = self.db.execute_query(query_bolsones, (id_lote,))
+
+        ws.cell(row=current_row, column=1, value="2. DETALLE DE BOLSONES ENVASADOS").font = font_sec
+        ws.cell(row=current_row, column=1).fill = fill_sec_bolsones
+        ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=8)
+        current_row += 1
+
+        encabezados_b = ["Nº Bolsón", "Producto", "Lote MP", "Conservadora", "Turno", "KGs", "Responsable", "Tiempo Env."]
+        ws.append(encabezados_b)
+        for col_idx in range(1, len(encabezados_b) + 1):
+            ws.cell(row=current_row, column=col_idx).font = font_sub
+            ws.cell(row=current_row, column=col_idx).fill = fill_sub_bolsones
+        current_row += 1
+
+        total_bolsones_kgs = 0
+        if res_bolsones:
+            for b in res_bolsones:
+                tiempo_env = self._formatear_delta_tiempo(b[8], b[7])
+                ws.append([b[0], b[1] or '-', b[2] or '-', b[3] or '-', b[4] or '-', b[5] or 0, b[6] or '-', tiempo_env])
+                total_bolsones_kgs += (b[5] or 0)
+                current_row += 1
+            
+            # Fila total bolsones
+            ws.append(["TOTAL ENVASADO:", "", "", "", "", total_bolsones_kgs, "", ""])
+            ws.cell(row=current_row, column=1).font = font_bold
+            ws.cell(row=current_row, column=6).font = font_bold
+            current_row += 1
+        else:
+            ws.append(["(Sin bolsones envasados)", "", "", "", "", "", "", ""])
+            current_row += 1
+
+        # Ajustar ancho de columnas
+        for col in ws.columns:
+            max_length = 0
+            column_letter = get_column_letter(col[0].column)
+            for cell in col:
+                try:
+                    if cell.value is not None:
+                        val_str = str(cell.value)
+                        if cell.row not in (1, 7) and len(val_str) > max_length:
+                            max_length = len(val_str)
+                except:
+                    pass
+            adjusted_width = max(max_length + 3, 12)
+            ws.column_dimensions[column_letter].width = adjusted_width
+
+        try:
+            wb.save(filepath)
+            messagebox.showinfo("Éxito", f"Reporte del Lote {lote_num} exportado correctamente a:\n{filepath}")
+            try:
+                os.startfile(filepath)
+            except AttributeError:
+                pass
+        except Exception as e:
+            messagebox.showerror("Error al guardar", f"No se pudo guardar el archivo Excel: {str(e)}\nAsegúrese de que el archivo no esté abierto en otro programa.")
 
 
 class SelectorPesajesModal(ctk.CTkToplevel):
